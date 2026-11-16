@@ -68,29 +68,37 @@ Dipendenze degli script: `ffmpeg`, `pip install opencv-python-headless numpy pil
 | `tour.chapters` | capitoli: allineamento (`left`, `right`, `center`), altezza `y`, testi e `range` |
 | `closing`, `footer` | chiusura della pagina |
 
-## Telefoni e tablet
+## Prestazioni (telefono, tablet, Mac/PC)
 
-Il motore riconosce il dispositivo e si regola da solo:
+I fotogrammi non vengono disegnati su un `<canvas>`. Ognuno diventa un'immagine dentro il tour e
+il motore rende visibili solo quella sullo schermo e la successiva (per la dissolvenza): il browser
+le compone con la scheda grafica e non deve ridisegnare nulla a ogni scroll.
 
 | | Telefono | Tablet | Desktop |
 | --- | --- | --- | --- |
 | Fotogrammi usati | 1 ogni 2 (con dissolvenza) | 1 ogni 2 (con dissolvenza) | tutti |
-| Fotogrammi aperti in memoria | 10 | 14 | 48 (24 con poca RAM) |
-| Risoluzione del canvas | quella del filmato | quella del filmato | fino a 2× |
+| Fotogrammi pronti in memoria | 10 | 14 | 32 (20 con poca RAM) |
 
-Altre regole: i fotogrammi restano compressi in memoria e vengono preparati già alla misura dello
-schermo. Il canvas si ridisegna solo quando l'immagine cambia davvero e da fermo la pagina non
-lavora. Su touch vetro e sfocatura sono più leggeri, i pulsanti hanno un'area di tocco più ampia
-e sono rispettati notch e barra home.
+Altre regole: i fotogrammi restano compressi finché servono e la pagina non lavora quando non si
+scorre. Su Safari e su touch niente parallasse nell'hero: ogni elemento "vetro" dovrebbe
+ricalcolare la sfocatura a ogni movimento. Su touch vetro e sfocature sono più leggeri, i
+pulsanti hanno un'area di tocco più ampia e sono rispettati notch e barra home.
 
 Con `tour.focus` si sceglie quale parte del filmato resta inquadrata sugli schermi verticali man
 mano che si scorre, ad esempio `[[0, 0.5], [0.3, 0.6]]`.
 
-Misure su iPhone 13 e iPad Pro 11 emulati con CPU rallentata 4× (mediana del tempo per fotogramma):
+Misure in Chrome emulato con CPU rallentata 4× (mediana del tempo per fotogramma, 16,7 ms = 60 fps):
 
-| | prima | dopo |
+| | primo motore (canvas) | ora |
 | --- | --- | --- |
-| iPhone | 50 ms (20 fps) | 16,7 ms (60 fps) |
-| iPad verticale | 100 ms (10 fps) | 16,7 ms (60 fps) |
-| iPad orizzontale | 100 ms (10 fps) | 16,7 ms (60 fps) |
-| Dati scaricati dal tour | 6,0 MB | 3,0 MB |
+| iPhone 13 | 50 ms | 16,7 ms |
+| iPad Pro 11 | 100 ms | 16,7 ms |
+| Mac Retina 1440×900 | 200 ms | 16,7 ms |
+| PC 1920×1080 | 83 ms | 16,7 ms |
+
+## Qualità delle immagini
+
+Altura parte dalla registrazione dello schermo di un telefono (circa 1150 px, compressa due
+volte), quindi su schermi grandi resta morbida. I fotogrammi sono ripuliti dalla grana
+(riduzione del rumore NLM) e la foto hero è ingrandita 2× con una rete neurale (EDSR). Per i siti
+del portfolio la nitidezza vera arriva dai video originali in HD o 4K.

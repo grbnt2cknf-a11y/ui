@@ -29,11 +29,11 @@ window.SITE = {
   ],
 
   hero: {
-    image: { src: "assets/hero-bg.webp", width: 1160, height: 864, alt: "Casa Pietra at dusk, Laguna Beach" },
-    foreground: { src: "assets/hero-fg.webp", top: 140, height: 330 },
-    // wordmark in photo pixels (fitted on the recording)
-    word: { x: 70, baseline: 418, size: 346, stretch: 1.02, tracking: -0.0231 },
-    roofY: 380,
+    image: { src: "assets/hero-bg.webp", width: 2320, height: 1728, alt: "Casa Pietra at dusk, Laguna Beach" },
+    foreground: { src: "assets/hero-fg.webp", top: 280, height: 660 },
+    // wordmark in photo pixels (fitted on the recording, photo upscaled 2× with EDSR)
+    word: { x: 140, baseline: 836, size: 692, stretch: 1.02, tracking: -0.0231 },
+    roofY: 760,
     parallax: 0.4,
   },
 

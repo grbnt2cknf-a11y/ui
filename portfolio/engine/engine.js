@@ -2,7 +2,7 @@
    Portfolio engine — "stile Altura"
    Builds the page from window.SITE (see siti/<nome>/site.config.js) and runs:
    - hero: cover-fit photo, wordmark tucked behind the subject, parallax
-   - tour: scroll-scrubbed image sequence on <canvas>, chapters with blur fades
+   - tour: scroll-scrubbed image sequence (GPU-composited <img> layers), chapters with blur fades
    Memory-safe on phones/tablets: frames are kept compressed (Blob) and only a
    small window around the current position is decoded at any time.
    ────────────────────────────────────────────────────────────── */
@@ -168,7 +168,7 @@
   const tourHTML = `
   <section class="tour" id="tour" data-tour aria-label="${esc(tourCfg.label || "Tour")}">
     <div class="tour-stage${frames ? "" : " no-footage"}">
-      <canvas class="tour-canvas" data-canvas aria-hidden="true"></canvas>
+      <div class="tour-frames" data-frames aria-hidden="true"></div>
       <div class="tour-vignette" aria-hidden="true"></div>
       ${(tourCfg.chapters || []).map(chapterHTML).join("")}
       <div class="progress" aria-hidden="true"><span data-progress></span></div>
@@ -197,7 +197,9 @@
   const heroCard = document.querySelector("[data-hero]");
   const wordmark = document.querySelector("[data-wordmark]");
   const parallaxLayers = [...document.querySelectorAll("[data-parallax]")];
-  const parallaxK = reduceMotion ? 0 : (H.parallax ?? 0.4);
+  const isWebKit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg|Android/.test(navigator.userAgent);
+  const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+  const parallaxK = reduceMotion || isWebKit || coarsePointer ? 0 : (H.parallax ?? 0.4);
   wordmark.style.letterSpacing = WORD.tracking + "em";
   wordmark.style.scale = `${WORD.stretch} 1`;
   wordmark.style.fontWeight = displayWeight;
@@ -254,7 +256,7 @@
       sy = Hh * 0.43 - ROOF_Y * k;
       fs = (W * 0.9) / (inkEm * WORD.stretch);
       wx = (W - fs * inkEm * WORD.stretch) / 2 - fs * inkLeftEm;
-      wy = sy + (ROOF_Y - 8) * k + fs * 0.07 - fs * baselineEm;
+      wy = sy + (ROOF_Y - IMG_W * 0.007) * k + fs * 0.07 - fs * baselineEm;
     }
     const s = heroCard.style;
     s.setProperty("--sx", sx + "px");
@@ -276,30 +278,28 @@
 
   /* ───────────── TOUR: memory-bounded frame player ───────────── */
   const tour = document.querySelector("[data-tour]");
-  const canvas = document.querySelector("[data-canvas]");
-  if (!frames) canvas.hidden = true; // let the placeholder gradient show
-  const ctx = canvas.getContext("2d", { alpha: false });
+  const frameLayer = document.querySelector("[data-frames]");
   const progressEl = document.querySelector("[data-progress]");
   const loaderEl = document.querySelector("[data-loader]");
   const loaderBar = loaderEl.querySelector("span");
 
-  // device profile: phones and tablets get fewer decoded frames, a lower canvas resolution,
-  // pre-scaled bitmaps and (phones) every other frame, which halves the download
+  /* Rendering: every decoded frame is an <img> inside the stage (object-fit: cover) and only the
+     one or two on screen are visible. The browser composites them on the GPU, so nothing is
+     painted per frame. A <canvas> renderer measured ~6× more main-thread work and dropped to
+     10 fps on an emulated Retina Mac; with images it holds 60 fps on Mac, iPad and iPhone. */
+
+  // device profile: phones and tablets keep fewer frames decoded and use every other frame
   const touch = window.matchMedia("(pointer: coarse)").matches;
   const phone = touch && Math.min(screen.width, screen.height) < 600;
   const tablet = touch && !phone;
   const lowMem = !!(navigator.deviceMemory && navigator.deviceMemory <= 4);
   const N = frames ? frames.count : 1;
-  // (measured on emulated iPhone/iPad with a 4× slower CPU: fetching + decoding every frame was
-  // the bottleneck; every other frame with a crossfade removed the dropped frames entirely)
   const touchStep = N > 150 ? (frames?.touchStep ?? 2) : 1;
   const P = phone
-    ? { maxDecoded: 10, step: touchStep, ahead: 4, blur: 6, dprCap: 1.25, preload: 1.5 }
+    ? { maxDecoded: 10, step: touchStep, ahead: 4, blur: 6, preload: 1.5, workers: 4 }
     : tablet
-      ? { maxDecoded: 14, step: touchStep, ahead: 4, blur: 8, dprCap: 1, preload: 2 }
-      : { maxDecoded: lowMem ? 24 : 48, step: 1, ahead: 10, blur: 14, dprCap: 2, preload: 3 };
-  const SRC_W = frames?.width || 1154;
-  const SRC_H = frames?.height || 856;
+      ? { maxDecoded: 14, step: touchStep, ahead: 4, blur: 8, preload: 2, workers: 4 }
+      : { maxDecoded: lowMem ? 20 : 32, step: 1, ahead: 8, blur: isWebKit ? 8 : 12, preload: 3, workers: 6 };
   const frameURL = (i) => `${frames.path}${String(i).padStart(frames.digits || 3, "0")}.${frames.ext || "webp"}`;
   const slot = (pos) => {
     // frames actually used on this device are multiples of P.step, plus the last one
@@ -308,7 +308,7 @@
     return [a, b, b > a ? clamp((pos - a) / (b - a)) : 0];
   };
   const blobs = new Array(N);
-  const decoded = new Map(); // index -> ImageBitmap | HTMLImageElement
+  const decoded = new Map(); // index -> <img>, already decoded
   const decoding = new Set();
   let fetched = 0;
   let toFetch = 0;
@@ -346,7 +346,7 @@
     for (let i = 0; i < N; i += P.step) used.push(i);
     if (used[used.length - 1] !== N - 1) used.push(N - 1);
     toFetch = used.length;
-    // coarse-to-fine, starting from where the reader is, so any position has a near frame early
+    // coarse-to-fine, so any scroll position has a near frame early
     const order = [];
     const seen = new Set(blobs.map((b, i) => (b !== undefined ? i : -1)).filter((i) => i >= 0));
     fetched = seen.size;
@@ -360,50 +360,26 @@
     const worker = async () => {
       while (cursor < order.length) await fetchBlob(order[cursor++]);
     };
-    await Promise.all(Array.from({ length: phone ? 4 : 6 }, worker));
-  }
-
-  // decode straight to the size it will be drawn at (cheap blits), when the browser allows it
-  let target = { w: 0, h: 0, ok: false };
-  function computeTarget() {
-    const s = Math.max(cw / SRC_W, ch / SRC_H);
-    const w = Math.round(SRC_W * s);
-    const h = Math.round(SRC_H * s);
-    const ok = (w * h) / (SRC_W * SRC_H) <= 2.2; // avoid huge bitmaps on hi-dpi desktops
-    const changed = ok !== target.ok || (ok && (w !== target.w || h !== target.h));
-    target = { w, h, ok };
-    if (changed) flushDecoded();
-  }
-  function flushDecoded() {
-    for (const b of decoded.values()) if (b.close) b.close();
-    decoded.clear();
+    await Promise.all(Array.from({ length: P.workers }, worker));
   }
 
   async function decode(i) {
     if (i < 0 || i >= N || decoded.has(i) || decoding.has(i) || !blobs[i]) return;
     decoding.add(i);
+    const img = new Image();
+    img.className = "tour-frame";
+    img.alt = "";
+    img.decoding = "async";
+    img.src = URL.createObjectURL(blobs[i]);
     try {
-      let bmp;
-      if (window.createImageBitmap) {
-        if (target.ok) {
-          try {
-            bmp = await createImageBitmap(blobs[i], { resizeWidth: target.w, resizeHeight: target.h, resizeQuality: touch ? "medium" : "high" });
-          } catch (e) {
-            bmp = null;
-          }
-        }
-        if (!bmp) bmp = await createImageBitmap(blobs[i]);
-      } else {
-        bmp = new Image();
-        bmp.src = URL.createObjectURL(blobs[i]);
-        await bmp.decode();
-      }
-      decoded.set(i, bmp);
+      await img.decode(); // off the main thread; the frame is ready before it is shown
+      frameLayer.appendChild(img);
+      decoded.set(i, img);
       evict();
       needsDraw = true;
       kick();
     } catch (e) {
-      /* skip broken frame */
+      URL.revokeObjectURL(img.src);
     } finally {
       decoding.delete(i);
     }
@@ -417,10 +393,11 @@
         const d = Math.abs(k - curIndex);
         if (d > fd) (fd = d), (far = k);
       }
-      const b = decoded.get(far);
+      const img = decoded.get(far);
       decoded.delete(far);
-      if (b.close) b.close();
-      else if (b.src && b.src.startsWith("blob:")) URL.revokeObjectURL(b.src);
+      if (shown.includes(img)) shown = shown.filter((x) => x !== img);
+      img.remove();
+      URL.revokeObjectURL(img.src);
     }
   }
 
@@ -447,32 +424,6 @@
     return best;
   }
 
-  let cw = 0;
-  let ch = 0;
-  function sizeCanvas() {
-    const cssW = canvas.clientWidth;
-    const cssH = canvas.clientHeight;
-    // never render more pixels than the footage has: with cover-fit the drawn image is
-    // `coverH` css px tall; on touch devices the canvas stops at the source resolution and the
-    // GPU scales it up for free (it would be upscaled anyway)
-    const coverH = Math.max(cssH, (cssW * SRC_H) / SRC_W);
-    const sourceCap = Math.max(0.6, (SRC_H * 1.05) / Math.max(1, coverH));
-    const dpr = Math.min(window.devicePixelRatio || 1, P.dprCap, touch ? sourceCap : 2);
-    const w = Math.round(cssW * dpr);
-    const h = Math.round(cssH * dpr);
-    if (canvas.width !== w || canvas.height !== h) {
-      canvas.width = w;
-      canvas.height = h;
-      lastKey = "";
-    }
-    cw = w;
-    ch = h;
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = touch ? "medium" : "high";
-    computeTarget();
-    needsDraw = true;
-  }
-
   // horizontal focal point of the crop, interpolated along the tour (only matters when the
   // stage is narrower than the footage, i.e. phones and tablets in portrait)
   const FOCUS = (tourCfg.focus || [[0, 0.5]]).slice().sort((x, y) => x[0] - y[0]);
@@ -488,18 +439,16 @@
     return FOCUS[FOCUS.length - 1][1];
   }
 
-  function drawImg(im, alpha, fx) {
-    const iw = im.width || im.naturalWidth;
-    const ih = im.height || im.naturalHeight;
-    const s = Math.max(cw / iw, ch / ih);
-    const dw = iw * s;
-    const dh = ih * s;
-    ctx.globalAlpha = alpha;
-    ctx.drawImage(im, Math.round((cw - dw) * fx), Math.round((ch - dh) / 2), Math.round(dw), Math.round(dh));
-  }
-
+  let shown = [];
   let lastKey = "";
   let lastPos = 0;
+  function show(img, opacity, z, objPos) {
+    const st = img.style;
+    if (st.objectPosition !== objPos) st.objectPosition = objPos;
+    st.opacity = opacity;
+    st.zIndex = z;
+    st.visibility = "visible";
+  }
   function drawFrame(pos, p) {
     if (!frames) return;
     const [a0, b0, t0] = slot(pos);
@@ -513,9 +462,16 @@
     const key = `${a}|${blend ? b0 : -1}|${tq}|${fx.toFixed(3)}`;
     if (key === lastKey) return; // nothing visible changed
     lastKey = key;
-    drawImg(decoded.get(a), 1, fx);
-    if (blend && tq > 0) drawImg(decoded.get(b0), tq, fx);
-    ctx.globalAlpha = 1;
+    const A = decoded.get(a);
+    const B = blend && tq > 0 ? decoded.get(b0) : null;
+    const objPos = `${(fx * 100).toFixed(1)}% 50%`;
+    for (const el of shown) if (el !== A && el !== B) el.style.visibility = "hidden";
+    show(A, 1, 1, objPos);
+    shown = [A];
+    if (B) {
+      show(B, tq, 2, objPos);
+      shown.push(B);
+    }
   }
 
   /* chapters: range = [inStart, inEnd, outStart, outEnd] as fractions of the tour (0–1) */
@@ -579,7 +535,7 @@
   function tick() {
     const diff = goal - current;
     if (Math.abs(diff) > 0.00001) {
-      current += reduceMotion ? diff : diff * (touch ? 0.2 : 0.14);
+      current += reduceMotion ? diff : diff * (touch ? 0.45 : 0.24);
       if (Math.abs(goal - current) < 0.00003) current = goal;
       needsDraw = true;
     }
@@ -628,7 +584,6 @@
   /* ───────────── boot ───────────── */
   function onResize() {
     layoutHero();
-    sizeCanvas();
     measure();
     readScroll();
   }
