@@ -294,7 +294,9 @@
   const tablet = touch && !phone;
   const lowMem = !!(navigator.deviceMemory && navigator.deviceMemory <= 4);
   const N = frames ? frames.count : 1;
-  const touchStep = N > 150 ? (frames?.touchStep ?? 2) : 1;
+  // with GPU-composited <img> frames, every frame holds 60 fps on emulated iPhone/iPad too
+  // (frames.touchStep: 2 halves the download if a site needs it)
+  const touchStep = frames?.touchStep ?? 1;
   const P = phone
     ? { maxDecoded: 10, step: touchStep, ahead: 4, blur: 6, preload: 1.5, workers: 4 }
     : tablet
@@ -449,15 +451,19 @@
     st.zIndex = z;
     st.visibility = "visible";
   }
+  // Crossfading neighbour frames looked smooth on paper but, where the camera moves fast, it
+  // stacked two different views (a visible double exposure on the iPhone recording). Default is
+  // a clean cut to the nearest frame; tour.crossfade: true re-enables it for slow, short sequences.
+  const CROSSFADE = !!tourCfg.crossfade;
   function drawFrame(pos, p) {
     if (!frames) return;
     const [a0, b0, t0] = slot(pos);
-    const fast = Math.abs(pos - lastPos) > 0.7 * P.step; // motion hides the crossfade: skip it
+    const fast = Math.abs(pos - lastPos) > 0.7 * P.step;
     lastPos = pos;
-    const a = nearestDecoded(t0 > 0.5 && fast ? b0 : a0);
+    const a = nearestDecoded(t0 >= 0.5 ? b0 : a0);
     if (a < 0) return;
-    const blend = !fast && a === a0 && b0 !== a0 && decoded.has(b0) && t0 > 0.04;
-    const tq = blend ? Math.round(t0 * 16) / 16 : 0;
+    const blend = CROSSFADE && !fast && a === a0 && b0 !== a0 && decoded.has(b0) && t0 > 0.04;
+    const tq = blend ? Math.round(t0 * 32) / 32 : 0; // smoother in-between steps
     const fx = focusAt(p);
     const key = `${a}|${blend ? b0 : -1}|${tq}|${fx.toFixed(3)}`;
     if (key === lastKey) return; // nothing visible changed

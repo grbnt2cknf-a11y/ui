@@ -76,7 +76,7 @@ le compone con la scheda grafica e non deve ridisegnare nulla a ogni scroll.
 
 | | Telefono | Tablet | Desktop |
 | --- | --- | --- | --- |
-| Fotogrammi usati | 1 ogni 2 (con dissolvenza) | 1 ogni 2 (con dissolvenza) | tutti |
+| Fotogrammi usati | tutti (`touchStep: 2` per dimezzare i dati) | tutti | tutti |
 | Fotogrammi pronti in memoria | 10 | 14 | 32 (20 con poca RAM) |
 
 Altre regole: i fotogrammi restano compressi finché servono e la pagina non lavora quando non si
