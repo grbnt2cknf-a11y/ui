@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Portfolio siti cinematografici</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono&family=Inter:wght@300;400;500&family=Poppins:wght@500&display=swap" rel="stylesheet" />
+    <style>
+      /* layout: one column of large site cards, each tinted with its own site palette */
+      :root {
+        --page: #0f0f10;
+        --ink: #f4f2ef;
+        --ink-2: rgba(244, 242, 239, 0.62);
+        --line: rgba(244, 242, 239, 0.12);
+        --display: "Poppins", "Inter", system-ui, sans-serif;
+        --sans: "Inter", system-ui, -apple-system, sans-serif;
+        --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--ink);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding-block: 64px 48px;
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+      }
+      .kicker {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--ink-2);
+      }
+      h1 {
+        margin: 14px 0 12px;
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: clamp(40px, 7vw, 84px);
+        line-height: 1;
+        letter-spacing: -0.035em;
+        text-wrap: balance;
+      }
+      .lead { max-width: 60ch; margin: 0 0 44px; color: var(--ink-2); font-size: 17px; line-height: 1.5; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+      .site {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 300px;
+        padding: 22px;
+        border-radius: 18px;
+        overflow: hidden;
+        color: #fff;
+        text-decoration: none;
+        background: linear-gradient(180deg, var(--a) 0%, var(--b) 58%, var(--c) 100%);
+        transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+      }
+      .site:hover { transform: translateY(-3px); }
+      .site:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+      .site .word {
+        font-family: var(--display);
+        font-weight: 500;
+        font-size: 64px;
+        letter-spacing: -0.03em;
+        line-height: 1;
+      }
+      .site .meta { display: flex; justify-content: space-between; align-items: end; gap: 12px; }
+      .site h2 { margin: 0 0 4px; font-weight: 500; font-size: 18px; }
+      .site p { margin: 0; font-size: 14px; color: rgba(255, 255, 255, 0.75); }
+      .tag {
+        flex: none;
+        padding: 6px 11px;
+        border-radius: 999px;
+        font-family: var(--mono);
+        font-size: 10.5px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        background: rgba(255, 255, 255, 0.14);
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+      }
+      .tag.ok::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: var(--d); }
+      footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-2); font-size: 13px; }
+      @media (prefers-reduced-motion: reduce) { .site { transition: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <p class="kicker">Portfolio · Stile cinematografico</p>
+      <h1>Siti che si guardano come un film.</h1>
+      <p class="lead">
+        Hero con il nome dietro il soggetto, interfaccia in vetro e un tour guidato dallo scroll.
+        Lo stesso motore per immobiliare, ristoranti, hotel e concessionarie.
+      </p>
+
+      <div class="grid">
+        <a class="site" href="siti/immobiliare/" style="--a:#0d2a5c; --b:#2a5aa8; --c:#18222c; --d:#f0a868">
+          <span class="word">dimora</span>
+          <span class="meta"><span><h2>Immobiliare</h2><p>Villa Corallo · Porto Cervo</p></span><span class="tag">Video in arrivo</span></span>
+        </a>
+        <a class="site" href="siti/ristorante/" style="--a:#1c0f0a; --b:#6a3018; --c:#1e1410; --d:#ff8a4c">
+          <span class="word">brace</span>
+          <span class="meta"><span><h2>Ristorante</h2><p>Cucina sul fuoco · Milano</p></span><span class="tag">Video in arrivo</span></span>
+        </a>
+        <a class="site" href="siti/hotel/" style="--a:#1d2944; --b:#5873a0; --c:#1b2027; --d:#e9bb8c">
+          <span class="word">albe</span>
+          <span class="meta"><span><h2>Hotel</h2><p>Suite Lago · Bellagio</p></span><span class="tag">Video in arrivo</span></span>
+        </a>
+        <a class="site" href="siti/auto/" style="--a:#0c0f16; --b:#2c3446; --c:#15171c; --d:#e2b45c">
+          <span class="word">linea</span>
+          <span class="meta"><span><h2>Auto</h2><p>GT Elettrica · Torino</p></span><span class="tag">Video in arrivo</span></span>
+        </a>
+        <a class="site" href="siti/altura/" style="--a:#0e2e6c; --b:#1b4ea4; --c:#1a2430; --d:#f3a55a">
+          <span class="word">altura</span>
+          <span class="meta"><span><h2>Studio di riferimento</h2><p>Replica dal video · uso interno</p></span><span class="tag ok">Completo</span></span>
+        </a>
+      </div>
+
+      <footer>Ogni sito vive in <code>siti/&lt;nome&gt;/site.config.js</code>: testi, colori, immagini e capitoli.</footer>
+    </div>
+  </body>
+</html>

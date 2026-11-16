@@ -1,6 +1,7 @@
 /* ──────────────────────────────────────────────────────────────
-   Altura — replica of the "Casa Pietra" landing
-   Layout reference: 1280×960 viewport (the recording is 4:3)
+   Portfolio engine — "stile Altura"
+   Every site sets its own palette through CSS variables (see engine.js → theme).
+   Layout reference: 1280×960 viewport; tour type in 1160×862 "stage units".
    ────────────────────────────────────────────────────────────── */
 
 :root {
@@ -12,11 +13,16 @@
   --glass-line: rgba(255, 255, 255, 0.16);
   --sky-top: #0e2e6c;
   --sky-mid: #1b4ea4;
+  --ground: #1a2430;
+  --stage: #1a1612;
+  --menu: rgba(40, 70, 140, 0.45);
+  --chip: rgba(120, 150, 220, 0.24);
+  --chip-hover: rgba(150, 175, 235, 0.34);
   --accent: #f3a55a;
   --gutter: 12px;
   --radius: 18px;
   --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --display: "Poppins", var(--sans);
+  --display: var(--display-face, "Poppins"), var(--sans);
   --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   color-scheme: dark;
 }
@@ -75,7 +81,9 @@ img {
 .hero {
   height: 100vh;
   height: 100svh;
-  padding: var(--gutter) var(--gutter) 0;
+  padding-block: var(--gutter) 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 
 .hero-card {
@@ -85,7 +93,7 @@ img {
   overflow: hidden;
   isolation: isolate;
   /* sky continuation when the photo does not reach the top (mobile) */
-  background: linear-gradient(180deg, var(--sky-top) 0%, #133a85 45%, var(--sky-mid) 100%);
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 100%);
 }
 
 /* the photo "scene": positioned by JS (cover fit), CSS fallback = centered cover */
@@ -195,7 +203,7 @@ img {
   gap: 2px;
   padding: 4px;
   border-radius: 999px;
-  background: rgba(40, 70, 140, 0.45);
+  background: var(--menu);
 }
 
 .menu a {
@@ -276,12 +284,12 @@ img {
   border-radius: 999px;
   line-height: 40px;
   white-space: nowrap;
-  background: rgba(120, 150, 220, 0.24);
+  background: var(--chip);
   transition: background-color 0.25s ease;
 }
 
 .cats a:hover {
-  background: rgba(150, 175, 235, 0.34);
+  background: var(--chip-hover);
 }
 
 .cats i {
@@ -353,11 +361,13 @@ img {
 
 .showing-specs {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
   margin-top: 14px;
 }
 
 .showing-specs li {
+  white-space: nowrap;
   height: 30px;
   padding: 0 12px;
   border-radius: 999px;
@@ -429,8 +439,10 @@ img {
 
 .tour {
   position: relative;
-  height: 820vh;
-  padding: var(--gutter) var(--gutter) 0;
+  height: var(--tour-vh, 820vh);
+  padding-block: var(--gutter) 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 
 .tour-stage {
@@ -441,7 +453,7 @@ img {
   border-radius: var(--radius);
   overflow: hidden;
   isolation: isolate;
-  background: #1a1612;
+  background: var(--stage);
   container-type: size;
 }
 
@@ -507,12 +519,12 @@ img {
 }
 
 /* centred intro */
-.chapter-intro [data-part] {
+.chapter[data-align="center"] [data-part] {
   left: 50%;
   transform: translateX(-50%);
 }
 
-.chapter-intro .display-xl {
+.chapter[data-align="center"] .display-xl {
   transform: translateX(calc(-50% + var(--u) * 2.5));
 }
 
@@ -536,14 +548,13 @@ img {
   height: 100%;
 }
 
-/* left-aligned rooms */
-.chapter-living [data-part],
-.chapter-kitchen [data-part] {
+/* left-aligned chapters */
+.chapter[data-align="left"] [data-part] {
   left: calc(var(--u) * 31);
 }
 
-/* right-aligned room */
-.chapter-dining [data-part] {
+/* right-aligned chapters */
+.chapter[data-align="right"] [data-part] {
   right: calc(var(--u) * 33);
   text-align: right;
 }
@@ -610,8 +621,9 @@ img {
 /* ───────────────────────── CLOSING ───────────────────────── */
 
 .closing {
-  padding: 18vh 30px 28px;
-  margin: 0 var(--gutter);
+  padding-block: 18vh 28px;
+  padding-left: max(30px, env(safe-area-inset-left, 0px));
+  padding-right: max(30px, env(safe-area-inset-right, 0px));
   text-align: center;
 }
 
@@ -741,7 +753,7 @@ img {
 
 /* portrait hero: photo fades into a dark ground under the card */
 .hero-card.is-portrait {
-  background: linear-gradient(180deg, var(--sky-top) 0%, #133a85 22%, var(--sky-mid) 40%, #1a2430 62%, #10151b 100%);
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 40%, var(--ground) 62%, var(--page) 100%);
 }
 
 .hero-card.is-portrait .scene-bg {
@@ -754,18 +766,17 @@ img {
   .chapter {
     --u: min(calc(100cqw / 800), calc(100cqh / 862));
   }
-  .chapter-intro .mono {
+  .chapter[data-align="center"] .mono {
     width: 86cqw;
     white-space: normal;
     text-align: center;
     line-height: 1.6;
   }
-  .chapter-intro .play {
-    --cap: 540;
+  .chapter[data-align="center"] .play {
+    --cap: 540 !important;
   }
-  .chapter-living .mono,
-  .chapter-dining .mono,
-  .chapter-kitchen .mono {
+  .chapter[data-align="left"] .mono,
+  .chapter[data-align="right"] .mono {
     max-width: 80cqw;
     white-space: normal;
     line-height: 1.6;
@@ -777,4 +788,32 @@ img {
   .arrow-link svg {
     transition: none;
   }
+}
+
+/* ───────────────────────── PLACEHOLDERS (site without footage yet) ───────────────────────── */
+
+.placeholder-note {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 58px;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.28);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.tour-stage.no-footage {
+  background:
+    radial-gradient(90% 70% at 30% 20%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 70%),
+    radial-gradient(80% 80% at 80% 90%, color-mix(in srgb, var(--sky-mid) 55%, transparent), transparent 70%),
+    var(--stage);
 }
