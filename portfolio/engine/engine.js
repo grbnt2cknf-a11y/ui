@@ -283,17 +283,46 @@
   const loaderEl = document.querySelector("[data-loader]");
   const loaderBar = loaderEl.querySelector("span");
 
+  // device profile: phones and tablets get fewer decoded frames, a lower canvas resolution,
+  // pre-scaled bitmaps and (phones) every other frame, which halves the download
+  const touch = window.matchMedia("(pointer: coarse)").matches;
+  const phone = touch && Math.min(screen.width, screen.height) < 600;
+  const tablet = touch && !phone;
+  const lowMem = !!(navigator.deviceMemory && navigator.deviceMemory <= 4);
   const N = frames ? frames.count : 1;
-  const coarse = window.matchMedia("(pointer: coarse)").matches || (navigator.deviceMemory && navigator.deviceMemory <= 4);
-  const MAX_DECODED = coarse ? 14 : 48; // ~4 MB each at 1160×860
+  // (measured on emulated iPhone/iPad with a 4× slower CPU: fetching + decoding every frame was
+  // the bottleneck; every other frame with a crossfade removed the dropped frames entirely)
+  const touchStep = N > 150 ? (frames?.touchStep ?? 2) : 1;
+  const P = phone
+    ? { maxDecoded: 10, step: touchStep, ahead: 4, blur: 6, dprCap: 1.25, preload: 1.5 }
+    : tablet
+      ? { maxDecoded: 14, step: touchStep, ahead: 4, blur: 8, dprCap: 1, preload: 2 }
+      : { maxDecoded: lowMem ? 24 : 48, step: 1, ahead: 10, blur: 14, dprCap: 2, preload: 3 };
+  const SRC_W = frames?.width || 1154;
+  const SRC_H = frames?.height || 856;
   const frameURL = (i) => `${frames.path}${String(i).padStart(frames.digits || 3, "0")}.${frames.ext || "webp"}`;
+  const slot = (pos) => {
+    // frames actually used on this device are multiples of P.step, plus the last one
+    const a = Math.min(N - 1, Math.floor(pos / P.step) * P.step);
+    const b = Math.min(N - 1, a + P.step);
+    return [a, b, b > a ? clamp((pos - a) / (b - a)) : 0];
+  };
   const blobs = new Array(N);
   const decoded = new Map(); // index -> ImageBitmap | HTMLImageElement
   const decoding = new Set();
   let fetched = 0;
+  let toFetch = 0;
   let needsDraw = true;
   let current = 0; // tour progress 0–1
   let curIndex = 0; // same, in frame units
+  let running = false;
+
+  function kick() {
+    if (!running) {
+      running = true;
+      requestAnimationFrame(tick);
+    }
+  }
 
   async function fetchBlob(i) {
     try {
@@ -304,21 +333,50 @@
       blobs[i] = null;
     }
     fetched++;
-    loaderBar.style.width = ((fetched / N) * 100).toFixed(1) + "%";
-    if (fetched === N) loaderEl.classList.add("is-done");
-    if (Math.abs(i - curIndex) < 3) want(curIndex);
+    if (toFetch) loaderBar.style.width = ((fetched / toFetch) * 100).toFixed(1) + "%";
+    if (toFetch && fetched >= toFetch) loaderEl.classList.add("is-done");
+    if (Math.abs(i - curIndex) <= P.ahead * P.step) want(curIndex);
   }
 
+  let prefetching = false;
   async function prefetchAll() {
+    if (prefetching || !frames) return;
+    prefetching = true;
+    const used = [];
+    for (let i = 0; i < N; i += P.step) used.push(i);
+    if (used[used.length - 1] !== N - 1) used.push(N - 1);
+    toFetch = used.length;
+    // coarse-to-fine, starting from where the reader is, so any position has a near frame early
     const order = [];
-    const seen = new Set();
-    for (const step of [16, 8, 4, 2, 1]) for (let i = 0; i < N; i += step) if (!seen.has(i)) (seen.add(i), order.push(i));
-    if (!seen.has(N - 1)) order.push(N - 1);
+    const seen = new Set(blobs.map((b, i) => (b !== undefined ? i : -1)).filter((i) => i >= 0));
+    fetched = seen.size;
+    for (const stride of [16, 8, 4, 2, 1]) {
+      for (let k = 0; k < used.length; k += stride) {
+        const i = used[k];
+        if (!seen.has(i)) (seen.add(i), order.push(i));
+      }
+    }
     let cursor = 0;
     const worker = async () => {
       while (cursor < order.length) await fetchBlob(order[cursor++]);
     };
-    await Promise.all(Array.from({ length: 6 }, worker));
+    await Promise.all(Array.from({ length: phone ? 4 : 6 }, worker));
+  }
+
+  // decode straight to the size it will be drawn at (cheap blits), when the browser allows it
+  let target = { w: 0, h: 0, ok: false };
+  function computeTarget() {
+    const s = Math.max(cw / SRC_W, ch / SRC_H);
+    const w = Math.round(SRC_W * s);
+    const h = Math.round(SRC_H * s);
+    const ok = (w * h) / (SRC_W * SRC_H) <= 2.2; // avoid huge bitmaps on hi-dpi desktops
+    const changed = ok !== target.ok || (ok && (w !== target.w || h !== target.h));
+    target = { w, h, ok };
+    if (changed) flushDecoded();
+  }
+  function flushDecoded() {
+    for (const b of decoded.values()) if (b.close) b.close();
+    decoded.clear();
   }
 
   async function decode(i) {
@@ -327,7 +385,14 @@
     try {
       let bmp;
       if (window.createImageBitmap) {
-        bmp = await createImageBitmap(blobs[i]);
+        if (target.ok) {
+          try {
+            bmp = await createImageBitmap(blobs[i], { resizeWidth: target.w, resizeHeight: target.h, resizeQuality: touch ? "medium" : "high" });
+          } catch (e) {
+            bmp = null;
+          }
+        }
+        if (!bmp) bmp = await createImageBitmap(blobs[i]);
       } else {
         bmp = new Image();
         bmp.src = URL.createObjectURL(blobs[i]);
@@ -336,6 +401,7 @@
       decoded.set(i, bmp);
       evict();
       needsDraw = true;
+      kick();
     } catch (e) {
       /* skip broken frame */
     } finally {
@@ -344,7 +410,7 @@
   }
 
   function evict() {
-    while (decoded.size > MAX_DECODED) {
+    while (decoded.size > P.maxDecoded) {
       let far = -1;
       let fd = -1;
       for (const k of decoded.keys()) {
@@ -358,18 +424,16 @@
     }
   }
 
-  let lastWantDir = 1;
   let lastWantPos = 0;
   function want(pos) {
     if (!frames) return;
-    const i0 = Math.floor(pos);
-    lastWantDir = pos >= lastWantPos ? 1 : -1;
+    const dir = pos >= lastWantPos ? 1 : -1;
     lastWantPos = pos;
-    const ahead = coarse ? 5 : 10;
-    decode(i0);
-    decode(i0 + 1);
-    for (let d = 1; d <= ahead; d++) decode(i0 + 1 + d * lastWantDir);
-    decode(i0 - lastWantDir);
+    const [a, b] = slot(pos);
+    decode(a);
+    decode(b);
+    for (let d = 1; d <= P.ahead; d++) decode(b + d * dir * P.step);
+    decode(a - dir * P.step);
   }
 
   function nearestDecoded(i) {
@@ -386,37 +450,71 @@
   let cw = 0;
   let ch = 0;
   function sizeCanvas() {
-    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.5 : 2);
-    cw = Math.round(canvas.clientWidth * dpr);
-    ch = Math.round(canvas.clientHeight * dpr);
-    if (canvas.width !== cw || canvas.height !== ch) {
-      canvas.width = cw;
-      canvas.height = ch;
+    const cssW = canvas.clientWidth;
+    const cssH = canvas.clientHeight;
+    // never render more pixels than the footage has: with cover-fit the drawn image is
+    // `coverH` css px tall; on touch devices the canvas stops at the source resolution and the
+    // GPU scales it up for free (it would be upscaled anyway)
+    const coverH = Math.max(cssH, (cssW * SRC_H) / SRC_W);
+    const sourceCap = Math.max(0.6, (SRC_H * 1.05) / Math.max(1, coverH));
+    const dpr = Math.min(window.devicePixelRatio || 1, P.dprCap, touch ? sourceCap : 2);
+    const w = Math.round(cssW * dpr);
+    const h = Math.round(cssH * dpr);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+      lastKey = "";
     }
+    cw = w;
+    ch = h;
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
+    ctx.imageSmoothingQuality = touch ? "medium" : "high";
+    computeTarget();
     needsDraw = true;
   }
 
-  function drawImg(im, alpha) {
+  // horizontal focal point of the crop, interpolated along the tour (only matters when the
+  // stage is narrower than the footage, i.e. phones and tablets in portrait)
+  const FOCUS = (tourCfg.focus || [[0, 0.5]]).slice().sort((x, y) => x[0] - y[0]);
+  function focusAt(p) {
+    if (FOCUS.length === 1 || p <= FOCUS[0][0]) return FOCUS[0][1];
+    for (let k = 1; k < FOCUS.length; k++) {
+      if (p <= FOCUS[k][0]) {
+        const [p0, f0] = FOCUS[k - 1];
+        const [p1, f1] = FOCUS[k];
+        return f0 + (f1 - f0) * smooth((p - p0) / (p1 - p0));
+      }
+    }
+    return FOCUS[FOCUS.length - 1][1];
+  }
+
+  function drawImg(im, alpha, fx) {
     const iw = im.width || im.naturalWidth;
     const ih = im.height || im.naturalHeight;
     const s = Math.max(cw / iw, ch / ih);
     const dw = iw * s;
     const dh = ih * s;
     ctx.globalAlpha = alpha;
-    ctx.drawImage(im, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+    ctx.drawImage(im, Math.round((cw - dw) * fx), Math.round((ch - dh) / 2), Math.round(dw), Math.round(dh));
   }
 
-  function drawFrame(pos) {
+  let lastKey = "";
+  let lastPos = 0;
+  function drawFrame(pos, p) {
     if (!frames) return;
-    const i0 = clamp(Math.floor(pos), 0, N - 1);
-    const t = pos - i0;
-    const a = nearestDecoded(i0);
+    const [a0, b0, t0] = slot(pos);
+    const fast = Math.abs(pos - lastPos) > 0.7 * P.step; // motion hides the crossfade: skip it
+    lastPos = pos;
+    const a = nearestDecoded(t0 > 0.5 && fast ? b0 : a0);
     if (a < 0) return;
-    drawImg(decoded.get(a), 1);
-    const i1 = Math.min(i0 + 1, N - 1);
-    if (t > 0.02 && a === i0 && i1 !== i0 && decoded.has(i1)) drawImg(decoded.get(i1), t);
+    const blend = !fast && a === a0 && b0 !== a0 && decoded.has(b0) && t0 > 0.04;
+    const tq = blend ? Math.round(t0 * 16) / 16 : 0;
+    const fx = focusAt(p);
+    const key = `${a}|${blend ? b0 : -1}|${tq}|${fx.toFixed(3)}`;
+    if (key === lastKey) return; // nothing visible changed
+    lastKey = key;
+    drawImg(decoded.get(a), 1, fx);
+    if (blend && tq > 0) drawImg(decoded.get(b0), tq, fx);
     ctx.globalAlpha = 1;
   }
 
@@ -440,18 +538,20 @@
   function updateChapters(p) {
     for (const chp of chapterEls) {
       for (const part of chp.parts) {
-        const v = Math.round(visibility(chp.range, p, part.kind) * 1000) / 1000;
+        const v = Math.round(visibility(chp.range, p, part.kind) * 40) / 40; // 40 steps are plenty
         if (v === part.last) continue;
         part.last = v;
-        part.el.style.opacity = v;
-        part.el.style.filter = v >= 0.999 ? "none" : `blur(${((1 - v) * (coarse ? 10 : 14)).toFixed(2)}px)`;
-        part.el.style.visibility = v <= 0.001 ? "hidden" : "visible";
+        const el = part.el.style;
+        el.opacity = v;
+        el.filter = v >= 1 ? "none" : `blur(${((1 - v) * P.blur).toFixed(1)}px)`;
+        el.visibility = v <= 0 ? "hidden" : "visible";
+        el.willChange = v > 0 && v < 1 ? "opacity, filter" : "auto"; // layers only while fading
       }
     }
   }
 
-  /* ───────────── scroll loop (inertia = cinematic scrub) ───────────── */
-  let target = 0; // 0–1
+  /* ───────────── scroll loop (inertia = cinematic scrub), idle when nothing moves ───────────── */
+  let goal = 0; // 0–1
   let tourTop = 0;
   let tourRange = 1;
 
@@ -461,17 +561,26 @@
     tourRange = Math.max(1, tour.offsetHeight - window.innerHeight);
   }
 
+  let lastParallax = -1;
   function readScroll() {
     const y = window.scrollY;
-    target = clamp((y - tourTop) / tourRange);
-    heroParallax(y);
+    goal = clamp((y - tourTop) / tourRange);
+    if (y < heroH * 1.3 || lastParallax !== heroH * 1.2) {
+      const py = clamp(y, 0, heroH * 1.2);
+      if (py !== lastParallax) {
+        lastParallax = py;
+        heroParallax(py);
+      }
+    }
+    if (frames && !prefetching && tourTop - y < window.innerHeight * P.preload) prefetchAll();
+    kick();
   }
 
   function tick() {
-    const diff = target - current;
+    const diff = goal - current;
     if (Math.abs(diff) > 0.00001) {
-      current += reduceMotion ? diff : diff * 0.14;
-      if (Math.abs(target - current) < 0.00002) current = target;
+      current += reduceMotion ? diff : diff * (touch ? 0.2 : 0.14);
+      if (Math.abs(goal - current) < 0.00003) current = goal;
       needsDraw = true;
     }
     if (needsDraw) {
@@ -479,11 +588,12 @@
       const pos = current * (N - 1);
       curIndex = pos;
       want(pos);
-      drawFrame(pos);
+      drawFrame(pos, current);
       updateChapters(current);
       progressEl.style.width = (current * 100).toFixed(2) + "%";
     }
-    requestAnimationFrame(tick);
+    if (current !== goal || needsDraw) requestAnimationFrame(tick);
+    else running = false;
   }
 
   /* play button: glide through the whole take */
@@ -523,15 +633,27 @@
     readScroll();
   }
 
-  window.addEventListener("resize", onResize, { passive: true });
+  let resizeT = 0;
+  window.addEventListener(
+    "resize",
+    () => {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(onResize, 120); // iOS fires many resizes while the toolbar moves
+    },
+    { passive: true }
+  );
+  window.addEventListener("orientationchange", () => setTimeout(onResize, 300));
   window.addEventListener("scroll", readScroll, { passive: true });
   if (document.fonts && document.fonts.load) {
     // wait for the stylesheet, then for the faces themselves, before measuring the wordmark
-    fontSheetReady.then(() => Promise.all([
-      document.fonts.load(`${displayWeight} 100px "${displayFace}"`),
-      document.fonts.load('200 100px "Inter"'),
-      document.fonts.load('400 100px "Geist Mono"'),
-    ]))
+    fontSheetReady
+      .then(() =>
+        Promise.all([
+          document.fonts.load(`${displayWeight} 100px "${displayFace}"`),
+          document.fonts.load('200 100px "Inter"'),
+          document.fonts.load('400 100px "Geist Mono"'),
+        ])
+      )
       .catch(() => {})
       .then(() => {
         measureWordmark();
@@ -539,18 +661,20 @@
       });
     document.fonts.addEventListener("loadingdone", () => {
       measureWordmark();
-      onResize();
+      layoutHero();
     });
   }
 
   onResize();
-  current = target;
+  current = goal;
   if (frames) {
     curIndex = current * (N - 1);
-    fetchBlob(0).then(() => {
-      want(curIndex);
-      prefetchAll();
-    });
+    // first frame right away (the tour card is visible while the hero scrolls away),
+    // the rest when the reader gets close to the tour, or once the page is idle on desktop
+    fetchBlob(0).then(() => want(curIndex));
+    const idle = window.requestIdleCallback || ((f) => setTimeout(f, 1200));
+    if (!touch) window.addEventListener("load", () => idle(() => prefetchAll(), { timeout: 2500 }));
+    readScroll();
   }
-  requestAnimationFrame(tick);
+  kick();
 })();

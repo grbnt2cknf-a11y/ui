@@ -73,7 +73,8 @@ def main() -> int:
 
     print(f"{len(pngs)} fotogrammi {w}×{h}, {total / 1e6:.1f} MB in {out_dir}")
     print("\nIncolla in site.config.js → tour:")
-    print(f'  frames: {{ count: {len(pngs)}, path: "assets/tour/", ext: "webp", digits: 3 }},')
+    print(f'  frames: {{ count: {len(pngs)}, path: "assets/tour/", ext: "webp", digits: 3, width: {w}, height: {h} }},')
+    print('  focus: [[0, 0.5]],  // inquadratura su schermi verticali: [avanzamento 0–1, x 0–1]')
     print("\nRicorda di regolare i `range` dei capitoli sulle soste della camera (frazioni 0–1 del tour).")
     return 0
 

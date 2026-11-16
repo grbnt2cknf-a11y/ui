@@ -70,6 +70,27 @@ Dipendenze degli script: `ffmpeg`, `pip install opencv-python-headless numpy pil
 
 ## Telefoni e tablet
 
-Il tour tiene in memoria i fotogrammi **compressi** e ne decodifica solo una piccola finestra
-attorno alla posizione corrente: 14 su telefoni e tablet, 48 su desktop. La prima versione li
-decodificava tutti, quasi 1 GB, e su iPhone e iPad Safari chiudeva la pagina.
+Il motore riconosce il dispositivo e si regola da solo:
+
+| | Telefono | Tablet | Desktop |
+| --- | --- | --- | --- |
+| Fotogrammi usati | 1 ogni 2 (con dissolvenza) | 1 ogni 2 (con dissolvenza) | tutti |
+| Fotogrammi aperti in memoria | 10 | 14 | 48 (24 con poca RAM) |
+| Risoluzione del canvas | quella del filmato | quella del filmato | fino a 2× |
+
+Altre regole: i fotogrammi restano compressi in memoria e vengono preparati già alla misura dello
+schermo. Il canvas si ridisegna solo quando l'immagine cambia davvero e da fermo la pagina non
+lavora. Su touch vetro e sfocatura sono più leggeri, i pulsanti hanno un'area di tocco più ampia
+e sono rispettati notch e barra home.
+
+Con `tour.focus` si sceglie quale parte del filmato resta inquadrata sugli schermi verticali man
+mano che si scorre, ad esempio `[[0, 0.5], [0.3, 0.6]]`.
+
+Misure su iPhone 13 e iPad Pro 11 emulati con CPU rallentata 4× (mediana del tempo per fotogramma):
+
+| | prima | dopo |
+| --- | --- | --- |
+| iPhone | 50 ms (20 fps) | 16,7 ms (60 fps) |
+| iPad verticale | 100 ms (10 fps) | 16,7 ms (60 fps) |
+| iPad orizzontale | 100 ms (10 fps) | 16,7 ms (60 fps) |
+| Dati scaricati dal tour | 6,0 MB | 3,0 MB |

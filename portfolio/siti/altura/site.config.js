@@ -55,7 +55,9 @@ window.SITE = {
     label: "Casa Pietra — walkthrough",
     playLabel: "Play the walkthrough",
     height: "820vh",
-    frames: { count: 245, path: "assets/tour/", ext: "webp", digits: 3 },
+    frames: { count: 245, path: "assets/tour/", ext: "webp", digits: 3, width: 1154, height: 856 },
+    // crop focal point on narrow (portrait) screens: [tour progress, x 0–1]
+    focus: [[0, 0.5], [0.24, 0.58], [0.4, 0.5], [0.53, 0.47], [0.68, 0.5], [0.82, 0.62]],
     chapters: [
       {
         align: "center",
