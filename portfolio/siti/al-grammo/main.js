@@ -67,16 +67,18 @@
   const fg = document.querySelector("[data-hero-fg]");
   const mask = document.querySelector("[data-word-mask]");
   const word = document.querySelector("[data-word]");
+  const wordShadow = document.querySelector("[data-word-shadow]");
   const heroLcdEl = document.querySelector("[data-hero-lcd]");
   const heroLCD = makeLCD(heroLcdEl, 3, "g");
   const BASELINE = 598;
   const parallax = !reduce && !touch && !isWebKit;
 
-  let metrics = { ink: 4.35, left: -0.016, asc: 0.703, fromBottom: 0.17 };
+  let metrics = { ink: 3.77, left: -0.02, asc: 0.672, fromBottom: 0.17 };
   function measureWord() {
     const c = document.createElement("canvas").getContext("2d");
-    c.font = '700 1000px "Bricolage Grotesque"';
-    if ("letterSpacing" in c) c.letterSpacing = "-40px";
+    c.font = '800 condensed 1000px "Bricolage Grotesque"';
+    if ("fontStretch" in c) c.fontStretch = "condensed";
+    if ("letterSpacing" in c) c.letterSpacing = "-20px";
     const m = c.measureText(word.textContent);
     if (!m.actualBoundingBoxRight) return;
     const fa = m.fontBoundingBoxAscent / 1000 || 0.93;
@@ -84,7 +86,7 @@
     metrics = {
       ink: (m.actualBoundingBoxRight + m.actualBoundingBoxLeft) / 1000,
       left: -m.actualBoundingBoxLeft / 1000,
-      asc: c.measureText("l").actualBoundingBoxAscent / 1000 || 0.703,
+      asc: c.measureText("H").actualBoundingBoxAscent / 1000 || 0.672,
       fromBottom: 1 - ((1 - (fa + fd)) / 2 + fa),
     };
   }
@@ -134,11 +136,53 @@
     const base = oy + BASELINE * k;
     const topLimit = W < 720 ? 116 : 136;
     const F = Math.max(28, Math.min((W * 0.92) / metrics.ink, (base - topLimit) / metrics.asc));
-    word.style.fontSize = F + "px";
-    word.style.left = W / 2 - (metrics.ink * F) / 2 - metrics.left * F + "px";
-    word.style.bottom = "2px";
+    for (const el of [word, wordShadow]) {
+      el.style.fontSize = F + "px";
+      el.style.left = W / 2 - (metrics.ink * F) / 2 - metrics.left * F + "px";
+      el.style.bottom = "2px";
+    }
+    wordShadow.style.setProperty("--sb", (F * 0.035).toFixed(1) + "px");
+    wordF = F;
+    updateShadow();
     place(mask, 0, 0, W, base + metrics.fromBottom * F + 2);
     layout = { k };
+  }
+
+  // the shadow falls away from the light: the window on the left, the cursor on desktop,
+  // and it grows longer as the page scrolls (like the sun moving)
+  let wordF = 0;
+  let lightX = 0;
+  let lightY = 0;
+  let scrollK = 0;
+  let shadowKey = "";
+  function updateShadow() {
+    if (!wordF) return;
+    const sx = wordF * (0.075 + 0.12 * scrollK - 0.08 * lightX);
+    const sy = wordF * (0.07 + 0.06 * scrollK - 0.05 * lightY);
+    const key = sx.toFixed(1) + "|" + sy.toFixed(1);
+    if (key === shadowKey) return;
+    shadowKey = key;
+    wordShadow.style.setProperty("--sx", key.split("|")[0] + "px");
+    wordShadow.style.setProperty("--sy", key.split("|")[1] + "px");
+  }
+  if (!reduce && window.matchMedia("(pointer: fine)").matches) {
+    let pending = false;
+    heroCard.addEventListener("pointermove", (e) => {
+      const r = heroCard.getBoundingClientRect();
+      lightX = ((e.clientX - r.left) / r.width - 0.5) * 2;
+      lightY = ((e.clientY - r.top) / r.height - 0.5) * 2;
+      if (!pending) {
+        pending = true;
+        requestAnimationFrame(() => {
+          pending = false;
+          updateShadow();
+        });
+      }
+    });
+    heroCard.addEventListener("pointerleave", () => {
+      lightX = lightY = 0;
+      updateShadow();
+    });
   }
 
   function heroParallax(y) {
@@ -221,10 +265,16 @@
     for (const it of ITEMS) {
       const t = clamp((p - it.win[0]) / (it.win[1] - it.win[0]));
       const fall = clamp(t / 0.55);
-      setVar(it.img, "--drop", 1 - easeOut(fall), it.last);
-      setVar(it.img, "--o", clamp(t / 0.12), it.last);
-      setVar(it.shadow, "--so", smooth(fall) * 0.85, it.last);
-      setVar(it.shadow, "--s", 1.45 - 0.45 * smooth(fall), it.last);
+      const e = easeOut(fall);
+      // a small squash when it lands, then still
+      const land = t > 0.55 ? Math.sin(Math.PI * clamp((t - 0.55) / 0.16)) : 0;
+      setVar(it.img, "--k", (1 + 0.6 * (1 - e)) * (1 - 0.022 * land), it.last);
+      setVar(it.img, "--rr", `${(14 * (1 - e)).toFixed(2)}deg`, it.last);
+      setVar(it.img, "--o", clamp(t / 0.1), it.last);
+      setVar(it.shadow, "--so", e * 0.9, it.last);
+      setVar(it.shadow, "--ks", 1.3 - 0.3 * e, it.last);
+      setVar(it.shadow, "--sx", `${(1.5 + 6 * (1 - e)).toFixed(2)}%`, it.last);
+      setVar(it.shadow, "--sy", `${(2 + 8 * (1 - e)).toFixed(2)}%`, it.last);
       // weighing starts once the ingredient has landed; the reading overshoots a touch and settles
       const u = clamp((t - 0.55) / 0.45);
       const frac = u < 0.7 ? easeOut(u / 0.7) * 1.02 : 1.02 - 0.02 * smooth((u - 0.7) / 0.3);
@@ -252,8 +302,8 @@
     setText(totals.eur, "eur", lastTotals, `${f2.format(sum.eur)} €`);
     monitor.classList.toggle("is-complete", p >= 0.84);
     // camera: the plate turns slowly on the scale while the view pushes in
-    setVar(plane, "--spin", `${(-10 + 18 * p).toFixed(2)}deg`, rigStore);
-    const z = 0.94 + 0.08 * smooth(clamp(p / 0.9));
+    setVar(plane, "--spin", `${(-6 + 12 * p).toFixed(2)}deg`, rigStore);
+    const z = 0.95 + 0.07 * smooth(clamp(p / 0.9));
     const tr = `scale(${z.toFixed(4)})`;
     if (rigStore.tr !== tr) {
       rigStore.tr = tr;
@@ -330,6 +380,13 @@
     const y = window.scrollY;
     for (const sc of scenes) sc.goal = clamp((y - sc.top) / sc.range);
     heroParallax(y);
+    if (!reduce) {
+      const k = Math.round(clamp(y / Math.max(1, heroH)) * 50) / 50;
+      if (k !== scrollK) {
+        scrollK = k;
+        updateShadow();
+      }
+    }
     if (mobileCta) {
       const inScene = scenes.some((sc) => y >= sc.top - window.innerHeight * 0.3 && y <= sc.top + sc.range + window.innerHeight * 0.2);
       mobileCta.classList.toggle("is-on", y > heroH * 0.7 && !inScene && y + window.innerHeight * 0.75 < visitTop);
@@ -382,7 +439,7 @@
 
   const fontsReady = document.fonts && document.fonts.load
     ? Promise.all([
-        document.fonts.load('700 100px "Bricolage Grotesque"'),
+        document.fonts.load('800 condensed 100px "Bricolage Grotesque"'),
         document.fonts.load('400 100px "Hanken Grotesk"'),
         document.fonts.load('400 100px "Geist Mono"'),
       ]).catch(() => {})

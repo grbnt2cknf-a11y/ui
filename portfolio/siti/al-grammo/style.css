@@ -119,16 +119,21 @@ h3 {
   overflow: hidden;
 }
 
-.word {
+.word,
+.word-shadow {
   position: absolute;
   left: 0;
   bottom: 0;
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: 800;
+  font-stretch: 75%;
   font-variation-settings: "opsz" 96;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
   white-space: nowrap;
+}
+
+.word {
   color: var(--basil);
   transform: translateY(105%);
   transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -136,6 +141,36 @@ h3 {
 
 .hero-card.is-in .word {
   transform: none;
+}
+
+/* cast shadow on the wall behind the name: it follows the light (cursor, scroll) and sways */
+.word-shadow {
+  color: rgba(14, 26, 19, 0.5);
+  filter: blur(var(--sb, 8px));
+  opacity: 0;
+  transform: translate3d(var(--sx, 0px), var(--sy, 0px), 0);
+  transition:
+    opacity 1.2s ease 0.9s,
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.word-shadow > span {
+  display: block;
+  animation: sway 7s ease-in-out infinite alternate;
+}
+
+@keyframes sway {
+  0% {
+    transform: translate3d(-0.02em, -0.01em, 0) skewX(-2deg);
+  }
+  100% {
+    transform: translate3d(0.035em, 0.018em, 0) skewX(3deg);
+  }
+}
+
+.hero-card.is-in .word-shadow {
+  opacity: 1;
 }
 
 .hero-fg {
@@ -429,18 +464,27 @@ h3 {
 }
 
 .rig {
-  --rig: min(70vh, 44vw);
+  /* overhead shot of the scale: image 1100 × 1283 */
+  --rig: min(calc((100svh - 150px) * 0.857), 40vw);
   position: relative;
   grid-column: 1;
   grid-row: 1 / -1;
   align-self: center;
   justify-self: end;
   width: var(--rig);
-  aspect-ratio: 1;
+  aspect-ratio: 1100 / 1283;
   max-width: 100%;
-  perspective: calc(var(--rig) * 2.4);
-  perspective-origin: 51.4% 32.8%;
   will-change: transform;
+}
+
+.rig::before {
+  content: "";
+  position: absolute;
+  inset: 3% 0 -2% 4%;
+  border-radius: 14%;
+  background: rgba(4, 14, 9, 0.55);
+  filter: blur(28px);
+  z-index: -1;
 }
 
 .rig-scale {
@@ -448,7 +492,6 @@ h3 {
   inset: 0;
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.35));
 }
 
 .rig-lcd .seg {
@@ -461,26 +504,26 @@ h3 {
 
 .rig-lcd {
   position: absolute;
-  left: 35.6%;
-  top: 70.2%;
-  width: 29.6%;
-  height: 7.9%;
+  left: 35.4%;
+  top: 85.7%;
+  width: 28.9%;
+  height: 7.6%;
   color: var(--mint);
-  filter: drop-shadow(0 0 6px rgba(190, 255, 205, 0.45));
+  filter: drop-shadow(0 0 5px rgba(190, 255, 205, 0.4));
 }
 
 .plane {
   position: absolute;
-  left: 51.4%;
-  top: 32.6%;
-  width: 60%;
+  left: 50%;
+  top: 40.7%;
+  width: 75%;
   aspect-ratio: 1;
-  transform: translate(-50%, -50%) rotateX(56deg) rotateZ(var(--spin, 0deg));
-  transform-style: preserve-3d;
+  transform: translate(-50%, -50%) rotate(var(--spin, 0deg));
 }
 
 .plate,
 .plate-shadow,
+.plate-light,
 .item,
 .item-shadow {
   position: absolute;
@@ -493,10 +536,21 @@ h3 {
 }
 
 .plate-shadow {
-  inset: -4%;
+  inset: 1%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.18) 72%, transparent);
-  transform: translate(3%, 5%);
+  background: radial-gradient(closest-side, rgba(20, 22, 24, 0.55), rgba(20, 22, 24, 0.22) 80%, transparent);
+  transform: translate(2.5%, 3.5%) scale(1.03);
+}
+
+/* one light for the whole dish: highlight top left, falloff bottom right */
+.plate-light {
+  inset: 2%;
+  border-radius: 50%;
+  background:
+    radial-gradient(60% 55% at 30% 26%, rgba(255, 250, 240, 0.12), transparent 70%),
+    radial-gradient(70% 70% at 74% 80%, rgba(30, 24, 18, 0.14), transparent 70%);
+  pointer-events: none;
+  z-index: 9;
 }
 
 .item,
@@ -506,15 +560,16 @@ h3 {
   width: var(--w);
   height: auto;
   max-width: none;
-  transform: translate(-50%, -50%) translateZ(calc(var(--drop, 0) * var(--rig) * 1.1 + var(--z) * 0.6px)) rotate(var(--r, 0deg));
+}
+
+/* falling from the camera: bigger while high, settles on the plate */
+.item {
+  transform: translate(-50%, -50%) rotate(calc(var(--r, 0deg) + var(--rr, 0deg))) scale(var(--k, 1.6));
   opacity: var(--o, 0);
 }
 
 .item-shadow {
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(40, 28, 16, 0.5), transparent);
-  transform: translate(-50%, -50%) translate(2%, 3%) scale(var(--s, 1.3));
+  transform: translate(-50%, -50%) translate(var(--sx, 7%), var(--sy, 9%)) rotate(var(--r, 0deg)) scale(var(--ks, 1.3));
   opacity: var(--so, 0);
 }
 
@@ -1095,7 +1150,7 @@ h3 {
     margin-top: 8px;
   }
   .rig {
-    --rig: min(88vw, calc(100svh - 330px), 620px);
+    --rig: min(80vw, calc((100svh - 330px) * 0.857), 500px);
   }
   .monitor {
     width: 100%;
@@ -1307,9 +1362,11 @@ h3 {
     -webkit-backdrop-filter: blur(10px) saturate(150%);
     backdrop-filter: blur(10px) saturate(150%);
   }
-  .rig-scale,
   .bowl-img {
     filter: none;
+  }
+  .rig::before {
+    filter: blur(18px);
   }
   a,
   button {
@@ -1337,6 +1394,13 @@ h3 {
   .word {
     transform: none;
     transition: none;
+  }
+  .word-shadow {
+    opacity: 1;
+    transition: none;
+  }
+  .word-shadow > span {
+    animation: none;
   }
   .topbar,
   .chips,
