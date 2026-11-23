@@ -34,17 +34,16 @@
           />
         </picture>
 
-        <div class="word-mask" data-word-mask>
-          <span class="word-shadow" data-word-shadow aria-hidden="true"><span>AL GRAMMO</span></span>
+        <div class="word-wrap" aria-hidden="false">
           <h1 class="word" data-word aria-label="Al Grammo">AL GRAMMO</h1>
+          <span class="word-reflect" data-word-reflect aria-hidden="true">AL GRAMMO</span>
         </div>
-        <img class="hero-fg" data-hero-fg src="img/hero-fg.webp" alt="" aria-hidden="true" />
         <div class="hero-lcd" data-hero-lcd role="img" aria-label="La bilancia segna 350 grammi"></div>
 
         <nav class="topbar" aria-label="Navigazione principale">
           <span aria-hidden="true"></span>
           <ul class="menu">
-            <li><a href="#bilancia">La bilancia</a></li>
+            <li><a href="#come">Come funziona</a></li>
             <li><a href="#bowl">Bowl</a></li>
             <li><a href="#prezzi">Prezzi</a></li>
             <li><a href="#dove">Dove siamo</a></li>
@@ -69,7 +68,7 @@
           </ul>
           <div class="card-foot">
             <strong>10,62 €</strong>
-            <a href="#bilancia">Guarda come si pesa</a>
+            <a href="#come">Come funziona</a>
           </div>
         </article>
 
@@ -81,37 +80,53 @@
     </header>
 
     <main>
-      <!-- ───────────── 2. LA BILANCIA: il piatto si compone con lo scroll ───────────── -->
-      <section class="weigh" id="bilancia" data-weigh aria-labelledby="weigh-title">
-        <div class="weigh-stage">
-          <div class="weigh-head">
-            <h2 id="weigh-title">La prova del peso.</h2>
-            <p>Ogni ingrediente si pesa davanti a te. Scorri e guarda la bilancia, grammo per grammo.</p>
+      <!-- ───────────── 2. COME FUNZIONA: tre passi e uno scontrino vero ───────────── -->
+      <section class="how" id="come" aria-labelledby="how-title">
+        <div class="how-inner">
+          <div class="how-copy">
+            <h2 id="how-title">Come funziona.</h2>
+            <ol class="steps">
+              <li>
+                <b>Scegli</b>
+                <span>Al totem componi il piatto: basi, proteine, verdure, salse e topping, a scatti di 5 g.</span>
+              </li>
+              <li>
+                <b>Leggi</b>
+                <span>Prima di pagare vedi grammi, calorie, macro e prezzo di ogni ingrediente.</span>
+              </li>
+              <li>
+                <b>Controlla</b>
+                <span>Al banco pesiamo davanti a te: il monitor mostra il tuo nome e il peso di ogni ingrediente.</span>
+              </li>
+            </ol>
           </div>
 
-          <div class="pour" data-pour role="img" aria-label="Mirtilli versati in una ciotola sulla bilancia: il display sale fino a 62 grammi">
-            <div class="pour-frames" data-frames></div>
-            <div class="pour-lcd" data-pour-lcd aria-hidden="true"></div>
-          </div>
-
-          <div class="monitor" data-monitor role="status" aria-live="off">
-            <div class="monitor-top">
+          <figure class="receipt">
+            <figcaption>
               <span>Ordine 027</span>
               <span>Marco</span>
-            </div>
-            <ol class="monitor-rows">
-              <li data-row="mirtilli"><span>Mirtilli freschi</span><b data-g>0 g</b><i data-eur>0,00 €</i></li>
-            </ol>
-            <dl class="monitor-total">
-              <div><dt>Peso</dt><dd data-total="g">0 g</dd></div>
-              <div><dt>Calorie</dt><dd data-total="kcal">0 kcal</dd></div>
-              <div class="macro"><dt>Proteine</dt><dd data-total="p">0,0 g</dd></div>
-              <div class="macro"><dt>Carboidrati</dt><dd data-total="c">0,0 g</dd></div>
-              <div class="macro"><dt>Grassi</dt><dd data-total="f">0,0 g</dd></div>
-              <div class="price"><dt>Da pagare</dt><dd data-total="eur">0,00 €</dd></div>
+            </figcaption>
+            <table>
+              <thead>
+                <tr><th scope="col">Ingrediente</th><th scope="col">Peso</th><th scope="col">kcal</th><th scope="col">Prezzo</th></tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">Pasta corta</th><td>160 g</td><td>253</td><td>3,84 €</td></tr>
+                <tr><th scope="row">Petto di pollo</th><td>150 g</td><td>248</td><td>3,60 €</td></tr>
+                <tr><th scope="row">Peperoni grigliati</th><td>100 g</td><td>38</td><td>2,40 €</td></tr>
+                <tr><th scope="row">Salsa allo yogurt</th><td>20 g</td><td>14</td><td>0,64 €</td></tr>
+              </tbody>
+              <tfoot>
+                <tr><th scope="row">Totale</th><td>430 g</td><td>553</td><td>10,48 €</td></tr>
+              </tfoot>
+            </table>
+            <dl class="macros">
+              <div><dt>Proteine</dt><dd>57,6 g</dd></div>
+              <div><dt>Carboidrati</dt><dd>55,6 g</dd></div>
+              <div><dt>Grassi</dt><dd>9,2 g</dd></div>
             </dl>
-            <p class="monitor-note">Tolleranza massima 5 g per ingrediente. Se sbagliamo, lo correggiamo prima di consegnarti il piatto.</p>
-          </div>
+            <p class="receipt-note">Tolleranza massima 5 g per ingrediente. Se sbagliamo, lo correggiamo prima di consegnarti il piatto.</p>
+          </figure>
         </div>
       </section>
 

@@ -1,5 +1,5 @@
 /* Al Grammo — layout: five full-screen moments. A bright kitchen hero with the name tucked behind
-   the bowl, a dark-green "weighing" scene driven by scroll, three ready bowls on changing tints,
+   the bowl, a dark-green "how it works" block with a real receipt, three ready bowls on changing tints,
    a quiet price list and the visit block. One deliberate light world: colours are all explicit. */
 :root {
   --paper: #ecebe6;
@@ -98,8 +98,7 @@ h3 {
 }
 
 .hero-photo,
-.hero-fg,
-.word-mask,
+.word-wrap,
 .hero-lcd {
   position: absolute;
   left: 0;
@@ -114,16 +113,19 @@ h3 {
   z-index: 0;
 }
 
-.word-mask {
-  z-index: 1;
-  overflow: hidden;
+/* the name sits in front of the photo, with a faint mirrored reflection under it */
+.word-wrap {
+  z-index: 3;
+  width: 100%;
+  height: 100%;
 }
 
 .word,
-.word-shadow {
+.word-reflect {
   position: absolute;
   left: 0;
-  bottom: 0;
+  top: 0;
+  margin: 0;
   font-family: var(--display);
   font-weight: 800;
   font-stretch: 75%;
@@ -131,50 +133,34 @@ h3 {
   line-height: 1;
   letter-spacing: -0.02em;
   white-space: nowrap;
+  color: var(--basil);
 }
 
 .word {
-  color: var(--basil);
-  transform: translateY(105%);
-  transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1);
+  text-shadow: 0 0.02em 0.06em rgba(12, 24, 17, 0.22);
+  opacity: 0;
+  transform: translateY(0.1em);
+  transition:
+    opacity 0.9s ease,
+    transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.word-reflect {
+  opacity: 0;
+  transform-origin: 50% var(--bl, 83%);
+  transform: translateY(var(--gap, 0px)) scaleY(-1);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 40%, #000 84%);
+  mask-image: linear-gradient(to bottom, transparent 40%, #000 84%);
+  transition: opacity 1.2s ease 0.4s;
 }
 
 .hero-card.is-in .word {
+  opacity: 1;
   transform: none;
 }
 
-/* cast shadow on the wall behind the name: it follows the light (cursor, scroll) and sways */
-.word-shadow {
-  color: rgba(14, 26, 19, 0.5);
-  filter: blur(var(--sb, 8px));
-  opacity: 0;
-  transform: translate3d(var(--sx, 0px), var(--sy, 0px), 0);
-  transition:
-    opacity 1.2s ease 0.9s,
-    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
-}
-
-.word-shadow > span {
-  display: block;
-  animation: sway 7s ease-in-out infinite alternate;
-}
-
-@keyframes sway {
-  0% {
-    transform: translate3d(-0.02em, -0.01em, 0) skewX(-2deg);
-  }
-  100% {
-    transform: translate3d(0.035em, 0.018em, 0) skewX(3deg);
-  }
-}
-
-.hero-card.is-in .word-shadow {
-  opacity: 1;
-}
-
-.hero-fg {
-  z-index: 2;
+.hero-card.is-in .word-reflect {
+  opacity: 0.22;
 }
 
 .hero-lcd {
@@ -401,138 +387,97 @@ h3 {
   font-weight: 500;
 }
 
-/* ───────────────────────── 2. LA BILANCIA ───────────────────────── */
+/* ───────────────────────── 2. COME FUNZIONA ───────────────────────── */
 
-.weigh {
-  position: relative;
-  height: 340vh;
-  padding-block: var(--gutter) 0;
-  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
-  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
-}
-
-.weigh-stage {
-  position: sticky;
-  top: max(var(--gutter), env(safe-area-inset-top, 0px));
-  height: calc(100vh - var(--gutter) * 2);
-  height: calc(100svh - var(--gutter) - max(var(--gutter), env(safe-area-inset-top, 0px)) - env(safe-area-inset-bottom, 0px));
+.how {
+  margin-inline: var(--gutter);
+  margin-top: var(--gutter);
   border-radius: var(--radius);
-  overflow: hidden;
-  background:
-    radial-gradient(70% 60% at 45% 58%, #24493a 0%, rgba(36, 73, 58, 0) 70%),
-    var(--basil);
+  background: var(--basil);
   color: var(--mint);
+}
+
+.how-inner {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
-  grid-template-rows: auto 1fr;
-  gap: 0 32px;
-  padding: 40px 44px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 460px);
+  gap: clamp(32px, 6vw, 88px);
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-block: clamp(64px, 12vh, 120px);
+  padding-left: max(32px, env(safe-area-inset-left, 0px));
+  padding-right: max(32px, env(safe-area-inset-right, 0px));
 }
 
-.weigh-head {
-  grid-column: 1;
-  grid-row: 1;
-  align-self: start;
-  position: relative;
-  z-index: 1;
-  max-width: 34ch;
-}
-
-.weigh-head h2 {
+.how h2 {
   font-family: var(--display);
   font-weight: 700;
-  font-size: clamp(40px, 5.4vw, 80px);
-  line-height: 0.98;
-  letter-spacing: -0.035em;
+  font-size: clamp(44px, 6.4vw, 96px);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
 }
 
-.weigh-head p {
-  margin-top: 14px;
-  font-size: 17px;
-  color: rgba(228, 245, 232, 0.78);
+.steps {
+  counter-reset: step;
+  display: grid;
+  gap: 0;
+  margin-top: clamp(28px, 5vh, 48px);
+  border-top: 1px solid rgba(228, 245, 232, 0.14);
 }
 
-/* the pour: a real clip on the scale, scrubbed by scroll (frames 864 × 1486) */
-.pour {
-  position: relative;
-  grid-column: 1;
-  grid-row: 1 / -1;
-  align-self: center;
-  justify-self: end;
-  height: 100%;
-  aspect-ratio: 864 / 1486;
-  max-width: 100%;
-  border-radius: 18px;
-  overflow: hidden;
-  background: #b9b3aa url("img/pesata/000.webp") center / cover;
-  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid rgba(228, 245, 232, 0.14);
 }
 
-.pour-frames {
-  position: absolute;
-  inset: 0;
+.steps li::before {
+  content: counter(step);
+  grid-row: 1 / 3;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1;
+  color: rgba(228, 245, 232, 0.35);
 }
 
-.pour-frame {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  max-width: none;
-  object-fit: cover;
-  visibility: hidden;
+.steps b {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.02em;
 }
 
-/* LED digits redrawn over the scale's display (the real ones flicker in a recording) */
-.pour-lcd {
-  position: absolute;
-  left: 0;
-  top: 0;
-  color: #f4f8ff;
-  transform-origin: 81% 47%;
-  transform: rotate(7deg);
-  filter: drop-shadow(0 0 4px rgba(225, 238, 255, 0.95)) drop-shadow(0 0 12px rgba(200, 222, 255, 0.55));
-  pointer-events: none;
+.steps span {
+  margin-top: 4px;
+  max-width: 48ch;
+  font-size: 16.5px;
+  color: rgba(228, 245, 232, 0.76);
 }
 
-.pour-lcd svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.pour-lcd .seg {
-  opacity: 0;
-}
-
-.pour-lcd .seg.on,
-.pour-lcd .led-dot {
-  opacity: 0.96;
-}
-
-/* the monitor above the counter: a real screen, not glass */
-.monitor {
-  grid-column: 2;
-  grid-row: 1 / -1;
-  align-self: center;
-  padding: 18px 18px 16px;
+/* the counter monitor, as a printed example */
+.receipt {
+  margin: 0;
+  padding: 20px 20px 18px;
   border-radius: 16px;
   background: #0d1712;
   box-shadow:
     inset 0 0 0 1px rgba(228, 245, 232, 0.1),
     0 24px 50px -24px rgba(0, 0, 0, 0.7);
   font-family: var(--mono);
-  font-size: 13.5px;
-  color: rgba(228, 245, 232, 0.86);
   font-variant-numeric: tabular-nums;
+  color: rgba(228, 245, 232, 0.86);
 }
 
-.monitor-top {
+.receipt figcaption {
   display: flex;
   justify-content: space-between;
   padding-bottom: 10px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   border-bottom: 1px solid rgba(228, 245, 232, 0.12);
   font-size: 12px;
   letter-spacing: 0.08em;
@@ -540,104 +485,81 @@ h3 {
   color: rgba(228, 245, 232, 0.55);
 }
 
-.monitor-rows li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 62px 62px;
-  gap: 8px;
-  align-items: baseline;
-  padding: 7px 8px;
-  margin: 0 -8px;
-  border-radius: 8px;
-  color: rgba(228, 245, 232, 0.32);
-  transition: color 0.3s ease, background-color 0.3s ease;
+.receipt table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
 }
 
-.monitor-rows li span {
-  font-family: var(--text);
-  font-size: 15px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.monitor-rows b,
-.monitor-rows i {
-  font-weight: 500;
-  font-style: normal;
+.receipt th,
+.receipt td {
+  padding: 8px 0;
   text-align: right;
+  font-weight: 400;
 }
 
-.monitor-rows li.is-active {
-  background: rgba(228, 245, 232, 0.08);
-  color: var(--mint);
-}
-
-.monitor-rows li.is-done {
-  color: rgba(228, 245, 232, 0.86);
-}
-
-.monitor-rows li.is-done b::after {
-  content: "";
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-left: 6px;
-  border-radius: 50%;
-  background: #7fd99a;
-  vertical-align: 1px;
-}
-
-.monitor-total {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 10px 12px;
-  margin-top: 10px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(228, 245, 232, 0.12);
-}
-
-.monitor-total div:nth-child(1),
-.monitor-total div:nth-child(2) {
-  grid-column: span 1;
-}
-
-.monitor-total dt {
+.receipt thead th {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(228, 245, 232, 0.5);
 }
 
-.monitor-total dd {
+.receipt th:first-child {
+  text-align: left;
+  font-family: var(--text);
+  font-size: 15px;
+}
+
+.receipt thead th:first-child {
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+.receipt td + td {
+  padding-left: 12px;
+}
+
+.receipt tfoot th,
+.receipt tfoot td {
+  padding-top: 12px;
+  border-top: 1px dashed rgba(228, 245, 232, 0.2);
+  color: #fff;
+  font-weight: 500;
+}
+
+.receipt tfoot td:last-child {
+  font-size: 20px;
+  color: #ffb4a3;
+}
+
+.macros {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(228, 245, 232, 0.12);
+}
+
+.macros dt {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(228, 245, 232, 0.5);
+}
+
+.macros dd {
   font-size: 16px;
   color: var(--mint);
 }
 
-.monitor-total .price {
-  grid-column: 1 / -1;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(228, 245, 232, 0.16);
-}
-
-.monitor-total .price dd {
-  font-size: 26px;
-  color: #fff;
-  transition: color 0.4s ease;
-}
-
-.monitor.is-complete .price dd {
-  color: #ffb4a3;
-}
-
-.monitor-note {
-  margin-top: 12px;
+.receipt-note {
+  margin-top: 14px;
   font-family: var(--text);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.45;
-  color: rgba(228, 245, 232, 0.5);
+  color: rgba(228, 245, 232, 0.55);
 }
 
 /* ───────────────────────── 3. LE BOWL ───────────────────────── */
@@ -1048,9 +970,8 @@ h3 {
 }
 
 @media (max-width: 900px) {
-  .weigh-stage {
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
-    padding: 32px 28px;
+  .how-inner {
+    grid-template-columns: minmax(0, 1fr);
   }
   .tier {
     grid-template-columns: 140px minmax(0, 1fr);
@@ -1062,97 +983,6 @@ h3 {
 
 /* portrait screens: phones and tablets held upright */
 @media (max-aspect-ratio: 19/20) {
-  .weigh-stage {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    padding: 22px 16px 16px;
-    gap: 0;
-  }
-  .weigh-head,
-  .monitor {
-    grid-column: 1;
-    position: relative;
-    z-index: 2;
-  }
-  .weigh-head {
-    grid-row: 1;
-  }
-  .monitor {
-    grid-row: 3;
-    background: rgba(9, 18, 13, 0.86);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-  }
-  /* portrait: the clip fills the whole card, text sits over soft scrims */
-  .pour {
-    position: absolute;
-    inset: 0;
-    grid-area: auto;
-    justify-self: stretch;
-    align-self: stretch;
-    width: auto;
-    height: auto;
-    aspect-ratio: auto;
-    max-width: none;
-    border-radius: 0;
-    box-shadow: none;
-    z-index: 0;
-  }
-  .pour::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      linear-gradient(180deg, rgba(10, 22, 15, 0.78) 0%, rgba(10, 22, 15, 0) 26%),
-      linear-gradient(0deg, rgba(10, 22, 15, 0.5) 0%, rgba(10, 22, 15, 0) 22%);
-    pointer-events: none;
-  }
-  .weigh-head p {
-    font-size: 15px;
-    margin-top: 8px;
-  }
-  .monitor {
-    width: 100%;
-    max-width: 520px;
-    justify-self: center;
-    padding: 12px 14px;
-    font-size: 12.5px;
-  }
-  .monitor-top {
-    display: none;
-  }
-  .monitor-rows li {
-    padding: 4px 8px;
-    grid-template-columns: minmax(0, 1fr) 56px 56px;
-  }
-  .monitor-rows li span {
-    font-size: 13.5px;
-  }
-  .monitor-total {
-    grid-template-columns: repeat(5, minmax(0, auto));
-    justify-content: space-between;
-  }
-  .monitor-total dt {
-    font-size: 10px;
-  }
-  .monitor-total dd {
-    font-size: 14px;
-  }
-  .monitor-total {
-    gap: 6px 10px;
-    margin-top: 6px;
-    padding-top: 8px;
-  }
-  .monitor-total .price {
-    padding-top: 6px;
-  }
-  .monitor-total .price dd {
-    font-size: 22px;
-  }
-  .monitor-note {
-    display: none;
-  }
-
   .bowls-title {
     top: 26px;
     left: 22px;
@@ -1259,11 +1089,18 @@ h3 {
     margin-top: 10px;
     padding-top: 6px;
   }
-  .weigh {
-    height: 300vh;
+  .how-inner {
+    padding-left: max(22px, env(safe-area-inset-left, 0px));
+    padding-right: max(22px, env(safe-area-inset-right, 0px));
   }
-  .weigh-head h2 {
-    font-size: 38px;
+  .receipt {
+    padding: 16px 14px 14px;
+  }
+  .receipt table {
+    font-size: 13px;
+  }
+  .receipt th:first-child {
+    font-size: 14px;
   }
   .bowls {
     height: 340vh;
@@ -1362,12 +1199,9 @@ h3 {
     transform: none;
     transition: none;
   }
-  .word-shadow {
-    opacity: 1;
+  .word-reflect {
+    opacity: 0.22;
     transition: none;
-  }
-  .word-shadow > span {
-    animation: none;
   }
   .topbar,
   .chips,
@@ -1376,18 +1210,13 @@ h3 {
     opacity: 1;
     transition: none;
   }
-  .weigh,
   .bowls {
     height: auto;
   }
-  .weigh-stage,
   .bowls-stage {
     position: relative;
     height: auto;
     min-height: 100svh;
-  }
-  .pour {
-    height: min(80svh, 900px);
   }
   .bowls-stage {
     display: grid;
@@ -1433,12 +1262,6 @@ h3 {
 
 /* short portrait screens: drop secondary lines */
 @media (max-aspect-ratio: 19/20) and (max-height: 760px) {
-  .weigh-head p {
-    display: none;
-  }
-  .weigh-head h2 {
-    font-size: 32px;
-  }
   .bowl-list {
     display: none;
   }
