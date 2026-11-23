@@ -89,6 +89,16 @@
       asc: c.measureText("H").actualBoundingBoxAscent / 1000 || 0.672,
       fromBottom: 1 - ((1 - (fa + fd)) / 2 + fa),
     };
+    // Width comes from the rendered heading itself: Safari's canvas ignores "condensed" and
+    // measured the normal-width face, which made the name small and pushed it to the left.
+    const prev = word.style.fontSize;
+    word.style.fontSize = "100px";
+    const adv = word.getBoundingClientRect().width / 100;
+    word.style.fontSize = prev;
+    if (adv > 1) {
+      metrics.ink = adv + 0.02; // the last letter carries -0.02em of tracking
+      metrics.left = 0;
+    }
   }
 
   let heroH = 0;
@@ -447,6 +457,13 @@
   const photoReady = photo.decode ? photo.decode().catch(() => {}) : Promise.resolve();
   const timeout = new Promise((r) => setTimeout(r, 2500)); // never keep the hero waiting
 
+  if (document.fonts && document.fonts.addEventListener) {
+    // a slow font that arrives after the first layout: measure again
+    document.fonts.addEventListener("loadingdone", () => {
+      measureWord();
+      layoutHero();
+    });
+  }
   Promise.race([Promise.all([fontsReady, photoReady]), timeout]).then(() => {
     measureWord();
     onResize();

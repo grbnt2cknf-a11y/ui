@@ -229,16 +229,6 @@ h3 {
   align-items: center;
 }
 
-.brand {
-  justify-self: start;
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 22px;
-  letter-spacing: -0.03em;
-  color: var(--basil);
-  text-decoration: none;
-}
-
 .menu,
 .chips li,
 .card {
@@ -1346,11 +1336,22 @@ h3 {
     font-weight: 600;
     text-decoration: none;
     box-shadow: 0 14px 30px -12px rgba(17, 36, 26, 0.75);
-    transform: translate(-50%, 140%);
-    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    /* fully below the screen when hidden, home indicator included */
+    transform: translate(-50%, calc(100% + 40px + env(safe-area-inset-bottom, 0px)));
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.3s ease,
+      visibility 0s linear 0.45s;
   }
   .mobile-cta.is-on {
     transform: translate(-50%, 0);
+    opacity: 1;
+    visibility: visible;
+    transition:
+      transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.3s ease;
   }
 }
 
