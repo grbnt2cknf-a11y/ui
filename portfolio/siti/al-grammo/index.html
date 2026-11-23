@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Al Grammo Pescara</title>
+    <meta
+      name="description"
+      content="Al Grammo, viale Pindaro, Pescara: componi il piatto al grammo, vedi calorie, macro e prezzo prima di pagare e il peso di ogni ingrediente sul monitor."
+    />
+    <meta name="theme-color" content="#e4e2dd" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Geist+Mono:wght@400;500&family=Hanken+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="preload" as="image" href="img/hero-tall.webp" media="(max-aspect-ratio: 19/20)" />
+    <link rel="preload" as="image" href="img/hero-wide.webp" media="(min-aspect-ratio: 19/20)" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- ───────────── 1. HERO: il nome dietro la bowl, la bilancia che pesa ───────────── -->
+    <header class="hero" id="top">
+      <div class="hero-card" data-hero>
+        <picture>
+          <source media="(max-aspect-ratio: 19/20)" srcset="img/hero-tall.webp" />
+          <img
+            class="hero-photo"
+            data-hero-photo
+            src="img/hero-wide.webp"
+            alt="Una bowl di verdure sulla bilancia del banco, in una cucina chiara"
+            fetchpriority="high"
+          />
+        </picture>
+
+        <div class="word-mask" data-word-mask>
+          <h1 class="word" data-word aria-label="Al Grammo">al grammo</h1>
+        </div>
+        <img class="hero-fg" data-hero-fg src="img/hero-fg.webp" alt="" aria-hidden="true" />
+        <div class="hero-lcd" data-hero-lcd role="img" aria-label="La bilancia segna 350 grammi"></div>
+
+        <nav class="topbar" aria-label="Navigazione principale">
+          <a class="brand" href="#top">al grammo</a>
+          <ul class="menu">
+            <li><a href="#bilancia">La bilancia</a></li>
+            <li><a href="#bowl">Bowl</a></li>
+            <li><a href="#prezzi">Prezzi</a></li>
+            <li><a href="#dove">Dove siamo</a></li>
+          </ul>
+          <a class="cta" href="#dove">Come arrivare</a>
+        </nav>
+
+        <ul class="chips" aria-label="In breve">
+          <li>Piatto al grammo da 5,50 €</li>
+          <li>3 bowl pronte</li>
+          <li>Viale Pindaro, Pescara</li>
+        </ul>
+
+        <article class="card">
+          <p class="card-kicker"><span class="dot" aria-hidden="true"></span>Sulla bilancia</p>
+          <h2 class="card-title">Il piatto medio</h2>
+          <p class="card-sub">pesato davanti a te, prima di pagare</p>
+          <ul class="card-specs">
+            <li>350 g</li>
+            <li>± 5 g</li>
+            <li>macro in chiaro</li>
+          </ul>
+          <div class="card-foot">
+            <strong>10,62 €</strong>
+            <a href="#bilancia">Guarda come si pesa</a>
+          </div>
+        </article>
+
+        <div class="intro">
+          <p>Componi il piatto al grammo. Calorie, macro e prezzo li vedi prima di pagare.</p>
+          <a href="#bowl">Oppure scegli una bowl</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <!-- ───────────── 2. LA BILANCIA: il piatto si compone con lo scroll ───────────── -->
+      <section class="weigh" id="bilancia" data-weigh aria-labelledby="weigh-title">
+        <div class="weigh-stage">
+          <div class="weigh-head">
+            <h2 id="weigh-title">La prova del peso.</h2>
+            <p>Ogni ingrediente si pesa davanti a te. Scorri e guarda il piatto comporsi, grammo per grammo.</p>
+          </div>
+
+          <div class="rig" data-rig aria-hidden="true">
+            <img class="rig-scale" src="img/bilancia.webp" alt="" />
+            <div class="rig-lcd" data-scale-lcd></div>
+            <div class="plane" data-plane>
+              <span class="plate-shadow"></span>
+              <img class="plate" src="img/piatto.webp" alt="" />
+              <span class="item-shadow" data-shadow="pasta" style="--x: 50%; --y: 52%; --w: 62%"></span>
+              <img class="item" data-item="pasta" src="img/pasta.webp" alt="" style="--x: 50%; --y: 52%; --w: 64%; --r: 0deg; --z: 1" />
+              <span class="item-shadow" data-shadow="pollo" style="--x: 37%; --y: 40%; --w: 38%"></span>
+              <img class="item" data-item="pollo" src="img/pollo.webp" alt="" style="--x: 37%; --y: 40%; --w: 42%; --r: -16deg; --z: 2" />
+              <span class="item-shadow" data-shadow="peperoni" style="--x: 64%; --y: 47%; --w: 36%"></span>
+              <img class="item" data-item="peperoni" src="img/peperoni.webp" alt="" style="--x: 64%; --y: 47%; --w: 40%; --r: 22deg; --z: 3" />
+              <span class="item-shadow" data-shadow="salsa" style="--x: 54%; --y: 70%; --w: 18%"></span>
+              <img class="item" data-item="salsa" src="img/salsa.webp" alt="" style="--x: 54%; --y: 70%; --w: 19%; --r: 0deg; --z: 4" />
+            </div>
+          </div>
+
+          <div class="monitor" data-monitor role="status" aria-live="off">
+            <div class="monitor-top">
+              <span>Ordine 027</span>
+              <span>Marco</span>
+            </div>
+            <ol class="monitor-rows">
+              <li data-row="pasta"><span>Pasta corta</span><b data-g>0 g</b><i data-eur>3,84 €</i></li>
+              <li data-row="pollo"><span>Petto di pollo</span><b data-g>0 g</b><i data-eur>3,60 €</i></li>
+              <li data-row="peperoni"><span>Peperoni grigliati</span><b data-g>0 g</b><i data-eur>2,40 €</i></li>
+              <li data-row="salsa"><span>Salsa allo yogurt</span><b data-g>0 g</b><i data-eur>0,64 €</i></li>
+            </ol>
+            <dl class="monitor-total">
+              <div><dt>Peso</dt><dd data-total="g">0 g</dd></div>
+              <div><dt>Calorie</dt><dd data-total="kcal">0 kcal</dd></div>
+              <div class="macro"><dt>Proteine</dt><dd data-total="p">0,0 g</dd></div>
+              <div class="macro"><dt>Carboidrati</dt><dd data-total="c">0,0 g</dd></div>
+              <div class="macro"><dt>Grassi</dt><dd data-total="f">0,0 g</dd></div>
+              <div class="price"><dt>Da pagare</dt><dd data-total="eur">0,00 €</dd></div>
+            </dl>
+            <p class="monitor-note">Tolleranza massima 5 g per ingrediente. Se sbagliamo, lo correggiamo prima di consegnarti il piatto.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── 3. LE BOWL: tre ricette pronte per chi ha fretta ───────────── -->
+      <section class="bowls" id="bowl" data-bowls aria-labelledby="bowls-title">
+        <div class="bowls-stage">
+          <span class="bowls-bg" data-bg style="--bg: #dbe5d1"></span>
+          <span class="bowls-bg" data-bg style="--bg: #efe4d3"></span>
+          <span class="bowls-bg" data-bg style="--bg: #d6e3e7"></span>
+
+          <h2 class="bowls-title" id="bowls-title">Hai fretta? Tre bowl pronte.</h2>
+
+          <div class="bowls-plates" aria-hidden="true">
+            <img class="bowl-img" data-bowl-img src="img/bowl-green.webp" alt="" />
+            <img class="bowl-img" data-bowl-img src="img/bowl-protein.webp" alt="" />
+            <img class="bowl-img" data-bowl-img src="img/bowl-mare.webp" alt="" />
+          </div>
+
+          <div class="bowls-copy">
+            <article class="bowl-text" data-bowl-text>
+              <h3>Green</h3>
+              <p class="bowl-goal">Vegana, con proteine vegetali.</p>
+              <p class="bowl-macro"><b>530 kcal</b> <span>P 35 g</span> <span>C 47 g</span> <span>G 25 g</span></p>
+              <p class="bowl-list">Farro, tofu, ceci, edamame, pomodori, avocado, salsa di soia, semi di zucca.</p>
+            </article>
+            <article class="bowl-text" data-bowl-text>
+              <h3>Protein</h3>
+              <p class="bowl-goal">Il massimo delle proteine.</p>
+              <p class="bowl-macro"><b>575 kcal</b> <span>P 69 g</span> <span>C 38 g</span> <span>G 15 g</span></p>
+              <p class="bowl-list">Riso basmati, pollo, tacchino, uovo sodo, zucchine, mais, pomodori, salsa allo yogurt, parmigiano.</p>
+            </article>
+            <article class="bowl-text" data-bowl-text>
+              <h3>Mare</h3>
+              <p class="bowl-goal">Pesce crudo, in stile poke.</p>
+              <p class="bowl-macro"><b>480 kcal</b> <span>P 33 g</span> <span>C 39 g</span> <span>G 22 g</span></p>
+              <p class="bowl-list">Riso basmati, salmone, gamberi, edamame, cetrioli, avocado, salsa di soia, sesamo.</p>
+            </article>
+          </div>
+
+          <div class="bowls-menu">
+            <p>In menu con acqua e dessert</p>
+            <ul>
+              <li><span>Piccola</span><b>9,90 €</b></li>
+              <li><span>Media</span><b>11,90 €</b></li>
+              <li><span>Grande</span><b>14,90 €</b></li>
+            </ul>
+            <small>Valori della taglia media, stimati con i nostri nutrizionisti.</small>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── 4. PREZZI: si pagano i grammi ───────────── -->
+      <section class="prices" id="prezzi" aria-labelledby="prices-title">
+        <div class="prices-inner">
+          <div class="prices-head">
+            <h2 id="prices-title">Paghi i grammi, non il piatto.</h2>
+            <p>Tre fasce di prezzo ogni 100 g. Il totale compare sul totem prima di pagare, insieme a calorie, macro e allergeni.</p>
+          </div>
+          <ol class="tiers">
+            <li class="tier" style="--tier: #3f8f4e">
+              <span class="tier-name">Verde</span>
+              <span class="tier-price"><b>2,40 €</b> ogni 100 g</span>
+              <span class="tier-list">Basi, pollo, uova, legumi e quasi tutte le verdure</span>
+            </li>
+            <li class="tier" style="--tier: #d9a521">
+              <span class="tier-name">Gialla</span>
+              <span class="tier-price"><b>3,20 €</b> ogni 100 g</span>
+              <span class="tier-list">Insalata, tofu, funghi e salse</span>
+            </li>
+            <li class="tier" style="--tier: #d6452c">
+              <span class="tier-name">Rossa</span>
+              <span class="tier-price"><b>4,70 €</b> ogni 100 g</span>
+              <span class="tier-list">Tacchino, manzo, pesce, avocado, olio e frutta secca</span>
+            </li>
+          </ol>
+          <div class="prices-foot">
+            <p><b>Piatto minimo 5,50 €.</b> Un piatto medio pesa circa 350 g e costa 10,62 €.</p>
+            <p>Si sceglie a scatti di 5 g: base fino a 160 g, proteine fino a 350 g, contorni 100 g, topping e salse 20 g.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ───────────── 5. DOVE SIAMO ───────────── -->
+      <section class="visit" id="dove" aria-labelledby="visit-title">
+        <div class="visit-inner">
+          <div class="visit-main">
+            <p class="visit-open">Apre mercoledì 1° settembre 2027</p>
+            <h2 id="visit-title">Viale Pindaro, Pescara.</h2>
+            <p class="visit-sub">A dieci minuti a piedi dal campus. Ordini al totem o in cassa e ritiri al banco in un paio di minuti.</p>
+            <div class="visit-actions">
+              <a class="btn btn-light" href="https://www.google.com/maps/search/?api=1&amp;query=Viale%20Pindaro%2C%20Pescara" target="_blank" rel="noopener">Apri in Google Maps</a>
+              <span class="visit-addr">Viale Pindaro [civico], 65127 Pescara</span>
+            </div>
+          </div>
+          <div class="visit-side">
+            <h3>Orari</h3>
+            <table class="hours">
+              <tbody>
+                <tr><th scope="row">Lunedì – venerdì</th><td>12:00 – 14:30<br />19:00 – 21:30</td></tr>
+                <tr><th scope="row">Sabato</th><td>12:00 – 14:30</td></tr>
+                <tr><th scope="row">Domenica e festivi</th><td>Chiuso</td></tr>
+              </tbody>
+            </table>
+            <p class="visit-note">Chiuso per ferie dal 15 luglio al 31 agosto.</p>
+            <h3>Altri modi di ordinare</h3>
+            <p class="visit-note">App con orario di ritiro da gennaio 2028. Consegna a domicilio con Glovo e Deliveroo.</p>
+          </div>
+        </div>
+        <footer class="footer">
+          <p><b>AL GRAMMO S.r.l.</b> La misura del gusto.</p>
+          <p>P. IVA [Partita IVA]</p>
+          <p>Instagram [@account], telefono [Numero di telefono]</p>
+          <p class="footer-legal">
+            Per ogni ingrediente indichiamo i 14 allergeni del Regolamento UE 1169/2011. I valori nutrizionali aiutano a scegliere ma non sostituiscono il parere di un medico o di un nutrizionista.
+          </p>
+        </footer>
+      </section>
+    </main>
+
+    <a class="mobile-cta" href="#dove" data-mobile-cta>Come arrivare</a>
+
+    <script src="main.js" defer></script>
+  </body>
+</html>
