@@ -32,14 +32,17 @@
   };
   const DIGIT = { 0: "abcdef", 1: "bc", 2: "abged", 3: "abgcd", 4: "fgbc", 5: "afgcd", 6: "afgedc", 7: "abc", 8: "abcdefg", 9: "abcdfg", " ": "" };
 
-  function makeLCD(el, n, unit) {
+  function makeLCD(el, n, unit, opts = {}) {
     if (!el) return () => {};
-    const pitch = 74;
+    const pitch = opts.pitch || 74;
+    const skew = opts.skew ?? -6;
     const digitsW = n * pitch - (pitch - CW);
     const vw = digitsW + (unit ? 44 : 0);
-    let svg = `<svg viewBox="-6 -4 ${vw + 12} ${CH + 8}" preserveAspectRatio="xMaxYMid meet" aria-hidden="true">`;
+    const vh = CH + 8 + (opts.dot ? 18 : 0);
+    let svg = `<svg viewBox="-6 -4 ${vw + 12} ${vh}" preserveAspectRatio="xMaxYMin meet" aria-hidden="true">`;
+    if (opts.dot) svg += `<rect class="led-dot" x="${opts.dot[0]}" y="${opts.dot[1]}" width="14" height="15" rx="2" fill="currentColor"/>`;
     for (let i = 0; i < n; i++) {
-      svg += `<g transform="translate(${i * pitch + 6} 0) skewX(-6)">`;
+      svg += `<g transform="translate(${i * pitch + 6} 0) skewX(${skew})">`;
       for (const k of "abcdefg") svg += `<polygon class="seg" data-s="${k}" points="${SEG[k]}"/>`;
       svg += "</g>";
     }
@@ -233,25 +236,25 @@
   }
   heroLCD(0);
 
-  /* ───────────── 2. LA BILANCIA ───────────── */
+  /* ───────────── 2. LA BILANCIA: the real pour, scrubbed by scroll ───────────── */
+  // 96 frames (every other frame of the clip, 864 × 1486). The scale's LED digits were removed
+  // from the frames and are drawn here, so they never flicker. Readings are the real ones read
+  // off the display: 0 → 5 → 40 → 46 → 49 → 62 g.
   const weigh = document.querySelector("[data-weigh]");
-  const rig = document.querySelector("[data-rig]");
-  const plane = document.querySelector("[data-plane]");
+  const pour = document.querySelector("[data-pour]");
+  const frameLayer = document.querySelector("[data-frames]");
+  const lcdEl = document.querySelector("[data-pour-lcd]");
   const monitor = document.querySelector("[data-monitor]");
-  const scaleLCD = makeLCD(document.querySelector("[data-scale-lcd]"), 3, "g");
-  const ITEMS = [
-    { id: "pasta", g: 160, kcal: 253, p: 9.3, c: 49.6, f: 1.4, eur: 3.84, win: [0.08, 0.27] },
-    { id: "pollo", g: 150, kcal: 248, p: 46.5, c: 0, f: 5.4, eur: 3.6, win: [0.29, 0.48] },
-    { id: "peperoni", g: 100, kcal: 38, p: 1.0, c: 4.8, f: 1.7, eur: 2.4, win: [0.5, 0.67] },
-    { id: "salsa", g: 20, kcal: 14, p: 0.8, c: 1.2, f: 0.7, eur: 0.64, win: [0.69, 0.82] },
-  ].map((it) => ({
-    ...it,
-    img: plane.querySelector(`[data-item="${it.id}"]`),
-    shadow: plane.querySelector(`[data-shadow="${it.id}"]`),
-    row: monitor.querySelector(`[data-row="${it.id}"]`),
-    rowG: monitor.querySelector(`[data-row="${it.id}"] [data-g]`),
-    last: {},
-  }));
+  const pourLCD = makeLCD(lcdEl, 3, null, { pitch: 58, skew: -8 });
+  const SEQ = { count: 96, path: "img/pesata/", srcW: 1026, w: 864, h: 1486 };
+  const READINGS = [[0, 0], [42.5, 5], [47, 40], [59, 46], [71, 49], [81.5, 62]]; // [frame, grams]
+  const PACE = [[0, 0], [0.1, 28], [0.8, 86], [1, 95]]; // [scroll progress, frame]: slow over the pour
+  // per gram, mirtilli freschi: 57 kcal, 0,74 P, 14,5 C, 0,33 G per 100 g. Price: the menu's
+  // "mix di frutta" (150 g a 4,00 €), to be confirmed with the client.
+  const FOOD = { kcal: 0.57, p: 0.0074, c: 0.145, f: 0.0033, eur: 4.0 / 150 };
+  const row = monitor.querySelector('[data-row="mirtilli"]');
+  const rowG = row.querySelector("[data-g]");
+  const rowEur = row.querySelector("[data-eur]");
   const totals = Object.fromEntries([...monitor.querySelectorAll("[data-total]")].map((el) => [el.dataset.total, el]));
   const lastTotals = {};
   const setText = (el, key, store, text) => {
@@ -260,65 +263,156 @@
       el.textContent = text;
     }
   };
-  const setVar = (el, name, value, store) => {
-    const v = typeof value === "number" ? value.toFixed(3) : value;
-    if (store[name] !== v) {
-      store[name] = v;
-      el.style.setProperty(name, v);
-    }
-  };
-  const rigStore = {};
-
-  function renderWeigh(p) {
-    let sumG = 0;
-    const sum = { kcal: 0, p: 0, c: 0, f: 0, eur: 0 };
-    for (const it of ITEMS) {
-      const t = clamp((p - it.win[0]) / (it.win[1] - it.win[0]));
-      const fall = clamp(t / 0.55);
-      const e = easeOut(fall);
-      // a small squash when it lands, then still
-      const land = t > 0.55 ? Math.sin(Math.PI * clamp((t - 0.55) / 0.16)) : 0;
-      setVar(it.img, "--k", (1 + 0.6 * (1 - e)) * (1 - 0.022 * land), it.last);
-      setVar(it.img, "--rr", `${(14 * (1 - e)).toFixed(2)}deg`, it.last);
-      setVar(it.img, "--o", clamp(t / 0.1), it.last);
-      setVar(it.shadow, "--so", e * 0.9, it.last);
-      setVar(it.shadow, "--ks", 1.3 - 0.3 * e, it.last);
-      setVar(it.shadow, "--sx", `${(1.5 + 6 * (1 - e)).toFixed(2)}%`, it.last);
-      setVar(it.shadow, "--sy", `${(2 + 8 * (1 - e)).toFixed(2)}%`, it.last);
-      // weighing starts once the ingredient has landed; the reading overshoots a touch and settles
-      const u = clamp((t - 0.55) / 0.45);
-      const frac = u < 0.7 ? easeOut(u / 0.7) * 1.02 : 1.02 - 0.02 * smooth((u - 0.7) / 0.3);
-      const grams = Math.round(it.g * frac);
-      const share = Math.min(1, grams / it.g);
-      sumG += grams;
-      sum.kcal += it.kcal * share;
-      sum.p += it.p * share;
-      sum.c += it.c * share;
-      sum.f += it.f * share;
-      sum.eur += it.eur * share;
-      setText(it.rowG, "g", it.last, `${grams} g`);
-      const state = t <= 0 ? "" : t >= 1 ? "is-done" : "is-active";
-      if (it.last.state !== state) {
-        it.last.state = state;
-        it.row.className = state;
+  const lerpKeys = (keys, x) => {
+    if (x <= keys[0][0]) return keys[0][1];
+    for (let i = 1; i < keys.length; i++) {
+      if (x <= keys[i][0]) {
+        const [x0, y0] = keys[i - 1];
+        const [x1, y1] = keys[i];
+        return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
       }
     }
-    scaleLCD(sumG);
-    setText(totals.g, "g", lastTotals, `${sumG} g`);
-    setText(totals.kcal, "kcal", lastTotals, `${f0.format(sum.kcal)} kcal`);
-    setText(totals.p, "p", lastTotals, `${f1.format(sum.p)} g`);
-    setText(totals.c, "c", lastTotals, `${f1.format(sum.c)} g`);
-    setText(totals.f, "f", lastTotals, `${f1.format(sum.f)} g`);
-    setText(totals.eur, "eur", lastTotals, `${f2.format(sum.eur)} €`);
-    monitor.classList.toggle("is-complete", p >= 0.84);
-    // camera: the plate turns slowly on the scale while the view pushes in
-    setVar(plane, "--spin", `${(-6 + 12 * p).toFixed(2)}deg`, rigStore);
-    const z = 0.95 + 0.07 * smooth(clamp(p / 0.9));
-    const tr = `scale(${z.toFixed(4)})`;
-    if (rigStore.tr !== tr) {
-      rigStore.tr = tr;
-      rig.style.transform = tr;
+    return keys[keys.length - 1][1];
+  };
+  const gramsAt = (n) => {
+    let g = 0;
+    for (const [f, v] of READINGS) if (n >= f) g = v;
+    return g;
+  };
+
+  // frame player: frames stay compressed, a small window around the position is decoded into
+  // <img> layers and only the visible one is shown (GPU composited, no per-frame painting)
+  const MAXDEC = touch ? 12 : 30;
+  const blobs = new Array(SEQ.count);
+  const decoded = new Map();
+  const decoding = new Set();
+  const url = (i) => `${SEQ.path}${String(i).padStart(3, "0")}.webp`;
+  let shownImg = null;
+  let curFrame = 0;
+  async function fetchFrame(i) {
+    if (blobs[i] !== undefined) return;
+    blobs[i] = null;
+    try {
+      const r = await fetch(url(i));
+      if (r.ok) blobs[i] = await r.blob();
+    } catch (e) {
+      /* offline: the poster stays */
     }
+    if (Math.abs(i - curFrame) < 4) wantFrames(curFrame);
+  }
+  let fetching = false;
+  async function fetchAll() {
+    if (fetching) return;
+    fetching = true;
+    const order = [];
+    const seen = new Set();
+    for (const step of [8, 4, 2, 1]) for (let i = 0; i < SEQ.count; i += step) if (!seen.has(i)) (seen.add(i), order.push(i));
+    let k = 0;
+    const worker = async () => {
+      while (k < order.length) await fetchFrame(order[k++]);
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+  }
+  async function decodeFrame(i) {
+    if (i < 0 || i >= SEQ.count || decoded.has(i) || decoding.has(i) || !blobs[i]) return;
+    decoding.add(i);
+    const img = new Image();
+    img.className = "pour-frame";
+    img.alt = "";
+    img.decoding = "async";
+    img.src = URL.createObjectURL(blobs[i]);
+    try {
+      await img.decode();
+      frameLayer.appendChild(img);
+      decoded.set(i, img);
+      while (decoded.size > MAXDEC) {
+        let far = -1;
+        let fd = -1;
+        for (const key of decoded.keys()) {
+          const d = Math.abs(key - curFrame);
+          if (d > fd) (fd = d), (far = key);
+        }
+        const old = decoded.get(far);
+        decoded.delete(far);
+        if (old === shownImg) shownImg = null;
+        old.remove();
+        URL.revokeObjectURL(old.src);
+      }
+      if (scenes[0]) {
+        scenes[0].dirty = true;
+        kick();
+      }
+    } catch (e) {
+      URL.revokeObjectURL(img.src);
+    } finally {
+      decoding.delete(i);
+    }
+  }
+  let lastDir = 1;
+  let lastN = 0;
+  function wantFrames(n) {
+    const i = Math.round(n);
+    lastDir = n >= lastN ? 1 : -1;
+    lastN = n;
+    decodeFrame(i);
+    for (let d = 1; d <= (touch ? 5 : 8); d++) decodeFrame(i + d * lastDir);
+    decodeFrame(i - lastDir);
+  }
+  function showFrame(n) {
+    const i = Math.round(n);
+    let img = decoded.get(i);
+    if (!img) {
+      let best = -1;
+      let bd = Infinity;
+      for (const key of decoded.keys()) {
+        const d = Math.abs(key - i);
+        if (d < bd) (bd = d), (best = key);
+      }
+      img = decoded.get(best);
+    }
+    if (!img || img === shownImg) return;
+    img.style.visibility = "visible";
+    if (shownImg) shownImg.style.visibility = "hidden";
+    shownImg = img;
+  }
+
+  // the LED overlay follows the cover-fitted frame
+  function layoutPour() {
+    const bw = pour.clientWidth;
+    const bh = pour.clientHeight;
+    const s = Math.max(bw / SEQ.w, bh / SEQ.h);
+    const k = (SEQ.w / SEQ.srcW) * s;
+    const ox = (bw - SEQ.w * s) / 2;
+    const oy = (bh - SEQ.h * s) / 2;
+    // digit box measured on the clip (source pixels): 3 digits, ones digit right edge at x 674
+    const st = lcdEl.style;
+    st.left = ox + 504.7 * k + "px";
+    st.top = oy + 1179.3 * k + "px";
+    st.width = 188 * 0.93 * k + "px";
+    st.height = 114 * 0.93 * k + "px";
+  }
+
+  function renderWeigh(p) {
+    const n = lerpKeys(PACE, p);
+    curFrame = Math.round(n);
+    wantFrames(n);
+    showFrame(n);
+    const g = gramsAt(n);
+    pourLCD(g);
+    setText(rowG, "g", lastTotals, `${g} g`);
+    setText(rowEur, "re", lastTotals, `${f2.format(g * FOOD.eur)} €`);
+    const state = g === 0 ? "" : g >= 62 ? "is-done" : "is-active";
+    if (lastTotals.state !== state) {
+      lastTotals.state = state;
+      row.className = state;
+    }
+    setText(totals.g, "g2", lastTotals, `${g} g`);
+    setText(totals.kcal, "kcal", lastTotals, `${f0.format(g * FOOD.kcal)} kcal`);
+    setText(totals.p, "p", lastTotals, `${f1.format(g * FOOD.p)} g`);
+    setText(totals.c, "c", lastTotals, `${f1.format(g * FOOD.c)} g`);
+    setText(totals.f, "f", lastTotals, `${f1.format(g * FOOD.f)} g`);
+    setText(totals.eur, "eur", lastTotals, `${f2.format(g * FOOD.eur)} €`);
+    monitor.classList.toggle("is-complete", g >= 62);
   }
 
   /* ───────────── 3. LE BOWL ───────────── */
@@ -429,6 +523,7 @@
   /* ───────────── boot ───────────── */
   function onResize() {
     layoutHero();
+    layoutPour();
     measure();
     for (const sc of scenes) sc.dirty = true;
     readScroll();
@@ -467,6 +562,7 @@
   Promise.race([Promise.all([fontsReady, photoReady]), timeout]).then(() => {
     measureWord();
     onResize();
+    fetchFrame(0).then(() => fetchAll());
     requestAnimationFrame(() => {
       heroCard.classList.add("is-in");
       setTimeout(countHero, reduce ? 0 : 450);
@@ -474,7 +570,8 @@
   });
 
   if (reduce) {
-    // final states, no scroll-driven motion
+    // final states, no scroll-driven motion: last frame, final reading
+    fetchFrame(SEQ.count - 1).then(() => decodeFrame(SEQ.count - 1)).then(() => renderWeigh(1));
     renderWeigh(1);
     scenes.length = 0;
   }

@@ -7,11 +7,11 @@ Cinque momenti:
 1. **Hero**: foto con la scritta "AL GRAMMO" (stampatello condensato) dietro la bowl e la sua ombra
    sul muro, che segue il cursore, si allunga scorrendo e oscilla piano; il display della bilancia
    è disegnato in codice e "si assesta" su 350 g come una bilancia vera.
-2. **La prova del peso**: vista dall'alto, come una ripresa sopra il banco. Scorrendo, pasta, pollo,
-   peperoni e salsa cadono nel piatto (si rimpiccioliscono avvicinandosi al piatto, l'ombra si
-   stringe sotto di loro); bilancia e monitor contano grammi, calorie, macro e prezzo (esempio
-   reale del business plan: 430 g, 553 kcal, 10,48 €). Gli ingredienti sono foto dall'alto,
-   quindi vanno mostrati dall'alto: inclinandoli sembravano adesivi.
+2. **La prova del peso**: un video vero (mirtilli versati nella ciotola sulla bilancia) che avanza
+   con lo scroll, 96 fotogrammi in `img/pesata/`. Il display a LED della bilancia sfarfalla nelle
+   registrazioni, quindi le cifre sono state cancellate da ogni fotogramma (`tools/pour_frames.py`)
+   e vengono ridisegnate sulla pagina; seguono le letture vere del video: 0, 5, 40, 46, 49, 62 g.
+   Il monitor accanto mostra grammi, calorie, macro e prezzo in sincrono.
 3. **Bowl pronte**: Green, Protein, Mare, con macro e prezzi del menu.
 4. **Prezzi a peso**: fasce verde, gialla e rossa.
 5. **Dove siamo**: indirizzo, orari, modi di ordinare.
@@ -24,6 +24,11 @@ Cinque momenti:
   generate con l'AI o scattate nel locale.
 - Le ricette delle bowl nel testo vengono dal business plan; le foto mostrano bowl simili, non
   identiche.
+- **Video della bilancia**: è la registrazione dello schermo di un video trovato online, quindi
+  vale come per le foto: da rifare con un video vostro. I mirtilli non sono tra gli ingredienti
+  del menu; il prezzo usa quello del mix di frutta (150 g a 4,00 €) ed è da confermare. Valori
+  nutrizionali: mirtilli freschi, 57 kcal, 0,74 g proteine, 14,5 g carboidrati, 0,33 g grassi
+  ogni 100 g.
 
 ## Vederlo in locale
 ```bash
